@@ -24,7 +24,7 @@ For now, for documentation, you can check the `typed_ecto_schema.ex` file here.
   - [ ] `embeds_many/4` (inline)
   - [x] `@primary_key`
   - [ ] `timestamps/0`, `timestamps/1`
-  - [ ] `__meta__`
+  - [x] `__meta__`
 - [x] Allows overriding types using `::` operator
 - [x] Schema options:
   - [x] `enforce`

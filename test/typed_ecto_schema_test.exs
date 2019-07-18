@@ -2,6 +2,7 @@ defmodule TypedEctoSchemaTest do
   use ExUnit.Case
 
   alias Ecto.Association.NotLoaded
+  alias Ecto.Schema.Metadata
 
   # Store the bytecode so we can get information from it.
   defmodule Embedded do
@@ -199,6 +200,7 @@ defmodule TypedEctoSchemaTest do
         end
 
         @type t() :: %__MODULE__{
+                __meta__: unquote(Metadata).t(),
                 id: integer() | nil,
                 int: integer() | nil,
                 string: String.t() | nil,
@@ -259,6 +261,7 @@ defmodule TypedEctoSchemaTest do
     types =
       quote do
         [
+          __meta__: unquote(Metadata).t(),
           id: integer() | nil,
           int: integer() | nil,
           string: unquote(String).t() | nil,
@@ -287,6 +290,7 @@ defmodule TypedEctoSchemaTest do
     types =
       quote do
         [
+          __meta__: unquote(Metadata).t(),
           id: integer(),
           normal: integer(),
           enforced: integer(),
@@ -309,6 +313,7 @@ defmodule TypedEctoSchemaTest do
     types =
       quote do
         [
+          __meta__: unquote(Metadata).t(),
           normal:
             (unquote(BelongsTo).t() | unquote(NotLoaded).t())
             | nil,

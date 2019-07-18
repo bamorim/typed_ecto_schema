@@ -202,6 +202,8 @@ defmodule TypedEctoSchema do
     quote do
       unquote(prelude(opts))
 
+      unquote(TypeBuilder).add_meta(__MODULE__)
+
       Ecto.Schema.schema unquote(table_name) do
         unquote(inner(block))
       end

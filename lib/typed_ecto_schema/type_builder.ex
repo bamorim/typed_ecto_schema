@@ -1,6 +1,8 @@
 defmodule TypedEctoSchema.TypeBuilder do
   @moduledoc false
 
+  alias Ecto.Schema.Metadata
+
   @type function_name ::
           :field
           | :embeds_one
@@ -83,6 +85,18 @@ defmodule TypedEctoSchema.TypeBuilder do
       _ ->
         :ok
     end
+  end
+
+  @spec add_meta(module()) :: :ok
+  def add_meta(module) do
+    Module.put_attribute(
+      module,
+      :__typed_ecto_schema_types__,
+      {:__meta__,
+       quote do
+         unquote(Metadata).t()
+       end}
+    )
   end
 
   @spec add_field(
