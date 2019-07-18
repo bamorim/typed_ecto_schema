@@ -3,9 +3,9 @@ defmodule TypedEctoSchema.EctoTypeMapper do
 
   alias Ecto.Association.NotLoaded
 
-  @schema_many_macros [:embeds_many, :has_many]
+  @schema_many_function_name [:embeds_many, :has_many]
 
-  @schema_assoc_macros [
+  @schema_assoc_function_name [
     :has_many,
     :has_one,
     :belongs_to
@@ -26,9 +26,7 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   @module_for_ecto_type_keys Map.keys(@module_for_ecto_type)
   @direct_types [:integer, :float, :boolean, :map, :binary]
 
-  # Maps Ecto.Type to Elixir Types
-
-  @type macros ::
+  @type function_name ::
           :field
           | :embeds_one
           | :embeds_many
@@ -36,25 +34,23 @@ defmodule TypedEctoSchema.EctoTypeMapper do
           | :has_many
           | :belongs_to
 
-  @type nullable_default :: true | false
-
   @type field_option :: {:null, boolean()}
+  @type field_options :: list(field_option)
 
-  @spec type_for(
-          Ecto.Type.t(),
-          macros(),
-          nullable_default,
-          list(field_option())
-        ) :: any()
-  def type_for(ecto_type, macro, nullable_default, opts) do
+  @spec type_for(Ecto.Type.t(), function_name(), boolean(), field_options()) ::
+          Macro.t()
+  def type_for(ecto_type, function_name, nullable_default, opts) do
     ecto_type
     |> base_type_for()
-    |> wrap_in_list_if_many(macro)
-    |> add_not_loaded_if_assoc(macro)
-    |> add_nil_if_nullable(field_is_nullable?(nullable_default, macro, opts))
+    |> wrap_in_list_if_many(function_name)
+    |> add_not_loaded_if_assoc(function_name)
+    |> add_nil_if_nullable(
+      field_is_nullable?(nullable_default, function_name, opts)
+    )
   end
 
   # Gets the base type for a given Ecto.Type.t()
+  @spec base_type_for(Ecto.Type.t()) :: Macro.t()
   defp base_type_for(atom) when atom in @module_for_ecto_type_keys do
     quote do
       unquote(Map.get(@module_for_ecto_type, atom)).t()
@@ -115,7 +111,9 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   ## Type Transformations Helpers
   ##
 
-  defp wrap_in_list_if_many(type, macro) when macro in @schema_many_macros do
+  @spec wrap_in_list_if_many(Macro.t(), function_name()) :: Macro.t()
+  defp wrap_in_list_if_many(type, function_name)
+       when function_name in @schema_many_function_name do
     quote do
       list(unquote(type))
     end
@@ -123,13 +121,15 @@ defmodule TypedEctoSchema.EctoTypeMapper do
 
   defp wrap_in_list_if_many(type, _), do: type
 
-  defp add_not_loaded_if_assoc(type, macro)
-       when macro in @schema_assoc_macros do
+  @spec add_not_loaded_if_assoc(Macro.t(), function_name()) :: Macro.t()
+  defp add_not_loaded_if_assoc(type, function_name)
+       when function_name in @schema_assoc_function_name do
     quote(do: unquote(type) | unquote(NotLoaded).t())
   end
 
   defp add_not_loaded_if_assoc(type, _), do: type
 
+  @spec add_nil_if_nullable(Macro.t(), nullable :: boolean) :: Macro.t()
   defp add_nil_if_nullable(type, false), do: type
   defp add_nil_if_nullable(type, true), do: quote(do: unquote(type) | nil)
 
@@ -137,14 +137,19 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   ## Field Information Helpers
   ##
 
-  defp field_is_nullable?(_default, macro, _opts)
-       when macro in @schema_many_macros,
+  @spec field_is_nullable?(
+          default :: boolean(),
+          function_name(),
+          field_options()
+        ) :: boolean()
+  defp field_is_nullable?(_default, function_name, _opts)
+       when function_name in @schema_many_function_name,
        do: false
 
-  defp field_is_nullable?(_default, macro, _args)
-       when macro in @schema_assoc_macros,
+  defp field_is_nullable?(_default, function_name, _args)
+       when function_name in @schema_assoc_function_name,
        do: true
 
-  defp field_is_nullable?(default, _macro, opts),
+  defp field_is_nullable?(default, _function_name, opts),
     do: Keyword.get(opts, :null, default)
 end

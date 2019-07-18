@@ -139,18 +139,18 @@ defmodule TypedEctoSchemaTest do
              overriden_string: nil,
              embed: nil,
              embeds: [],
-             has_many: %unquote(Ecto.Association.NotLoaded){
+             has_many: %unquote(NotLoaded){
                __field__: :has_many,
                __owner__: TestStruct,
                __cardinality__: :many
              },
-             has_one: %unquote(Ecto.Association.NotLoaded){
+             has_one: %unquote(NotLoaded){
                __field__: :has_one,
                __owner__: TestStruct,
                __cardinality__: :one
              },
              belongs_to_id: nil,
-             belongs_to: %unquote(Ecto.Association.NotLoaded){
+             belongs_to: %unquote(NotLoaded){
                __field__: :belongs_to,
                __owner__: TestStruct,
                __cardinality__: :one
@@ -208,12 +208,10 @@ defmodule TypedEctoSchemaTest do
                 overriden_string: any(),
                 embed: Embedded.t() | nil,
                 embeds: list(Embedded.t()),
-                has_one:
-                  (HasOne.t() | unquote(Ecto.Association.NotLoaded).t()) | nil,
-                has_many:
-                  list(HasMany.t()) | unquote(Ecto.Association.NotLoaded).t(),
+                has_one: (HasOne.t() | unquote(NotLoaded).t()) | nil,
+                has_many: list(HasMany.t()) | unquote(NotLoaded).t(),
                 belongs_to:
-                  (BelongsTo.t() | unquote(Ecto.Association.NotLoaded).t())
+                  (BelongsTo.t() | unquote(NotLoaded).t())
                   | nil,
                 belongs_to_id: integer() | nil
               }
@@ -271,12 +269,11 @@ defmodule TypedEctoSchemaTest do
           embed: unquote(Embedded).t() | nil,
           embeds: list(unquote(Embedded).t()),
           has_one:
-            (unquote(HasOne).t() | unquote(Ecto.Association.NotLoaded).t())
+            (unquote(HasOne).t() | unquote(NotLoaded).t())
             | nil,
-          has_many:
-            list(unquote(HasMany).t()) | unquote(Ecto.Association.NotLoaded).t(),
+          has_many: list(unquote(HasMany).t()) | unquote(NotLoaded).t(),
           belongs_to:
-            (unquote(BelongsTo).t() | unquote(Ecto.Association.NotLoaded).t())
+            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
             | nil,
           belongs_to_id: integer() | nil
         ]
@@ -295,10 +292,10 @@ defmodule TypedEctoSchemaTest do
           enforced: integer(),
           overriden: integer() | nil,
           has_one:
-            (unquote(HasOne).t() | unquote(Ecto.Association.NotLoaded).t())
+            (unquote(HasOne).t() | unquote(NotLoaded).t())
             | nil,
           belongs_to:
-            (unquote(BelongsTo).t() | unquote(Ecto.Association.NotLoaded).t())
+            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
             | nil,
           belongs_to_id: integer()
         ]
@@ -313,19 +310,19 @@ defmodule TypedEctoSchemaTest do
       quote do
         [
           normal:
-            (unquote(BelongsTo).t() | unquote(Ecto.Association.NotLoaded).t())
+            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
             | nil,
           normal_id: integer() | nil,
           with_custom_fk:
-            (unquote(BelongsTo).t() | unquote(Ecto.Association.NotLoaded).t())
+            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
             | nil,
           custom_fk: integer() | nil,
           custom_type:
-            (unquote(BelongsTo).t() | unquote(Ecto.Association.NotLoaded).t())
+            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
             | nil,
           custom_type_id: binary() | nil,
           no_define:
-            (unquote(BelongsTo).t() | unquote(Ecto.Association.NotLoaded).t())
+            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
             | nil
         ]
       end

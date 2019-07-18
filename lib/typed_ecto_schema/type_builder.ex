@@ -1,10 +1,29 @@
 defmodule TypedEctoSchema.TypeBuilder do
   @moduledoc false
 
-  @default_opts null: true, enforce: false, opaque: false
+  @type function_name ::
+          :field
+          | :embeds_one
+          | :embeds_many
+          | :has_one
+          | :has_many
+          | :belongs_to
 
-  defmacro init(opts) do
-    opts = Keyword.merge(@default_opts, opts)
+  @typep schema_option ::
+           {:null, boolean()}
+           | {:enforce, boolean()}
+           | {:opaque, boolean()}
+
+  @type schema_options :: list(schema_option)
+
+  @type field_option :: {atom(), any()}
+
+  @type field_options :: list(field_option)
+
+  @default_schema_opts null: true, enforce: false, opaque: false
+
+  defmacro init(schema_opts) do
+    schema_opts = Keyword.merge(@default_schema_opts, schema_opts)
 
     quote do
       Module.register_attribute(
@@ -22,7 +41,7 @@ defmodule TypedEctoSchema.TypeBuilder do
       Module.put_attribute(
         __MODULE__,
         :__typed_ecto_schema_module_opts__,
-        unquote(opts)
+        unquote(schema_opts)
       )
     end
   end
@@ -33,17 +52,17 @@ defmodule TypedEctoSchema.TypeBuilder do
     end
   end
 
-  defmacro define_type(opts) do
+  defmacro define_type(schema_opts) do
     quote do
       unquote(__MODULE__).__define_type__(
         @__typed_ecto_schema_types__,
-        unquote(opts)
+        unquote(schema_opts)
       )
     end
   end
 
-  defmacro __define_type__(types, opts) do
-    if Keyword.get(opts, :opaque, false) do
+  defmacro __define_type__(types, schema_opts) do
+    if Keyword.get(schema_opts, :opaque, false) do
       quote bind_quoted: [types: types] do
         @opaque t() :: %__MODULE__{unquote_splicing(types)}
       end
@@ -54,24 +73,34 @@ defmodule TypedEctoSchema.TypeBuilder do
     end
   end
 
-  def add_primary_key(mod) do
-    case Module.get_attribute(mod, :primary_key) do
-      {name, type, opts} ->
-        add_field(mod, :field, name, type, opts)
+  @spec add_primary_key(module()) :: :ok
+  def add_primary_key(module) do
+    case Module.get_attribute(module, :primary_key) do
+      {name, type, field_opts} ->
+        add_field(module, :field, name, type, field_opts)
+        :ok
 
       _ ->
         :ok
     end
   end
 
-  def add_field(mod, macro, name, ecto_type, field_opts) when is_atom(name) do
-    mod_opts = Module.get_attribute(mod, :__typed_ecto_schema_module_opts__)
+  @spec add_field(
+          module(),
+          function_name(),
+          atom(),
+          Ecto.Type.t(),
+          field_options()
+        ) :: :ok
+  def add_field(mod, function_name, name, ecto_type, field_opts)
+      when is_atom(name) do
+    schema_opts = Module.get_attribute(mod, :__typed_ecto_schema_module_opts__)
 
     type =
       TypedEctoSchema.EctoTypeMapper.type_for(
         ecto_type,
-        macro,
-        Keyword.get(mod_opts, :null),
+        function_name,
+        Keyword.get(schema_opts, :null),
         Keyword.take(field_opts, [:null])
       )
 
@@ -83,10 +112,11 @@ defmodule TypedEctoSchema.TypeBuilder do
       {name, overriden_type}
     )
 
-    if field_is_enforced?(mod_opts, field_opts),
+    if field_is_enforced?(schema_opts, field_opts),
       do: Module.put_attribute(mod, :__typed_ecto_schema_enforced_keys__, name)
 
-    if macro == :belongs_to and Keyword.get(field_opts, :define_field, true) do
+    if function_name == :belongs_to and
+         Keyword.get(field_opts, :define_field, true) do
       add_field(
         mod,
         :field,
@@ -95,17 +125,20 @@ defmodule TypedEctoSchema.TypeBuilder do
         field_opts
       )
     end
+
+    :ok
   end
 
   def add_field(_mod, _macro, name, _type, _opts) do
     raise ArgumentError, "a field name must be an atom, got #{inspect(name)}"
   end
 
-  defp field_is_enforced?(mod_opts, field_opts) do
+  @spec field_is_enforced?(schema_options(), field_options()) :: boolean()
+  defp field_is_enforced?(schema_opts, field_opts) do
     Keyword.get(
       field_opts,
       :enforce,
-      Keyword.get(mod_opts, :enforce) && is_nil(field_opts[:default])
+      schema_opts[:enforce] && is_nil(field_opts[:default])
     )
   end
 end
