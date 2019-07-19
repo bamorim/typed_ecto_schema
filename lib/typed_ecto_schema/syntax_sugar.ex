@@ -5,6 +5,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
   # Our Type Builder
 
   alias TypedEctoSchema.TypeBuilder
+  alias TypedEctoSchema.SyntaxSugar
 
   @schema_function_names [
     :field,
@@ -14,6 +15,8 @@ defmodule TypedEctoSchema.SyntaxSugar do
     :has_many,
     :belongs_to
   ]
+
+  @embeds_function_names [:embeds_one, :embeds_many]
 
   @spec apply_to_block(Macro.t()) :: Macro.t()
   def apply_to_block(block) do
@@ -89,6 +92,29 @@ defmodule TypedEctoSchema.SyntaxSugar do
     end
   end
 
+  defp transform_expression({function_name, _, [name, schema, opts, [do: block]]} = call)
+       when function_name in @embeds_function_names do
+    quote do
+      {schema, opts} =
+        unquote(SyntaxSugar).__embeds_module__(
+          __ENV__,
+          unquote(schema),
+          unquote(opts),
+          unquote(Macro.escape(block))
+        )
+
+      unquote(function_name)(unquote(name), schema, opts)
+
+      unquote(TypeBuilder).add_field(
+        __MODULE__,
+        unquote(function_name),
+        unquote(name),
+        schema,
+        opts
+      )
+    end
+  end
+
   defp transform_expression({:timestamps, ctx, []}) do
     transform_expression({:timestamps, ctx, [[]]})
   end
@@ -112,4 +138,23 @@ defmodule TypedEctoSchema.SyntaxSugar do
   end
 
   defp transform_expression(other), do: other
+
+  @doc false
+  def __embeds_module__(env, name, opts, block) do
+    {pk, opts} = Keyword.pop(opts, :primary_key, {:id, :binary_id, autogenerate: true})
+
+    block =
+      quote do
+        use TypedEctoSchema
+
+        @primary_key unquote(Macro.escape(pk))
+        typed_embedded_schema do
+          unquote(block)
+        end
+      end
+
+    module = Module.concat(env.module, name)
+    Module.create(module, block, env)
+    {module, opts}
+  end
 end

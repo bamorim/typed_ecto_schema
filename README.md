@@ -19,9 +19,9 @@ For now, for documentation, you can check the `typed_ecto_schema.ex` file here.
   - [x] `has_many/2`, `has_many/3`
   - [x] `has_one/2`, `has_one/3`
   - [x] `embeds_one/2`, `embeds_one/3`
-  - [ ] `embeds_one/4` (inline)
+  - [x] `embeds_one/4` (inline)
   - [x] `embeds_many/2`, `embeds_many/3`
-  - [ ] `embeds_many/4` (inline)
+  - [x] `embeds_many/4` (inline)
   - [x] `@primary_key`
   - [x] `timestamps/0`, `timestamps/1`
   - [x] `__meta__`

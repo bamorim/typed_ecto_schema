@@ -447,6 +447,106 @@ defmodule TypedEctoSchemaTest do
              delete_context(types)
   end
 
+  defmodule InlineEmbedsOne do
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_embedded_schema do
+      embeds_one(:one, One, []) do
+        field(:int, :integer) :: non_neg_integer() | nil
+      end
+    end
+  end
+
+  test "we can use inline embeds_one" do
+    types =
+      quote do
+        [one: unquote(InlineEmbedsOne.One).t() | nil]
+      end
+
+    assert delete_context(InlineEmbedsOne.__typed_schema__(:types)) ==
+             delete_context(types)
+
+    embed_types =
+      quote do
+        [id: binary() | nil, int: non_neg_integer() | nil]
+      end
+
+    assert delete_context(InlineEmbedsOne.One.__typed_schema__(:types)) ==
+             delete_context(embed_types)
+  end
+
+  defmodule InlineEmbedsOneNoPK do
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_embedded_schema do
+      embeds_one(:one, One, primary_key: false) do
+        field(:int, :integer) :: non_neg_integer() | nil
+      end
+    end
+  end
+
+  test "we can use inline embeds_one with no primary keys" do
+    embed_types =
+      quote do
+        [int: non_neg_integer() | nil]
+      end
+
+    assert delete_context(InlineEmbedsOneNoPK.One.__typed_schema__(:types)) ==
+             delete_context(embed_types)
+  end
+
+  defmodule InlineEmbedsMany do
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_embedded_schema do
+      embeds_many(:many, Many, []) do
+        field(:int, :integer) :: non_neg_integer() | nil
+      end
+    end
+  end
+
+  test "we can use inline embeds_many" do
+    types =
+      quote do
+        [many: list(unquote(InlineEmbedsMany.Many).t())]
+      end
+
+    assert delete_context(InlineEmbedsMany.__typed_schema__(:types)) ==
+             delete_context(types)
+
+    embed_types =
+      quote do
+        [id: binary() | nil, int: non_neg_integer() | nil]
+      end
+
+    assert delete_context(InlineEmbedsMany.Many.__typed_schema__(:types)) ==
+             delete_context(embed_types)
+  end
+
+  defmodule InlineEmbedsManyNoPK do
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_embedded_schema do
+      embeds_many(:many, Many, primary_key: false) do
+        field(:int, :integer) :: non_neg_integer() | nil
+      end
+    end
+  end
+
+  test "we can use inline embeds_many with no primary keys" do
+    embed_types =
+      quote do
+        [int: non_neg_integer() | nil]
+      end
+
+    assert delete_context(InlineEmbedsOneNoPK.One.__typed_schema__(:types)) ==
+             delete_context(embed_types)
+  end
+
   ##
   ## Helpers
   ##
