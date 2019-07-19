@@ -78,30 +78,37 @@ defmodule TypedEctoSchema.SyntaxSugar do
     end
   end
 
-  defp transform_expression(
-         {:::, _, [{function_name, _, [name, ecto_type, opts]}, type]}
-       )
+  defp transform_expression({:timestamps, _, [opts]} = call) do
+    quote do
+      unquote(call)
+
+      unquote(TypeBuilder).add_timestamps(
+        __MODULE__,
+        Keyword.merge(@timestamps_opts, unquote(opts))
+      )
+    end
+  end
+
+  defp transform_expression({:timestamps, ctx, []}) do
+    transform_expression({:timestamps, ctx, [[]]})
+  end
+
+  defp transform_expression({:::, _, [{function_name, _, [name, ecto_type, opts]}, type]})
        when function_name in @schema_function_names do
     transform_expression(
-      {function_name, [],
-       [name, ecto_type, [{:__typed_ecto_type__, Macro.escape(type)} | opts]]}
+      {function_name, [], [name, ecto_type, [{:__typed_ecto_type__, Macro.escape(type)} | opts]]}
     )
   end
 
-  defp transform_expression(
-         {:::, _, [{function_name, _, [name, ecto_type]}, type]}
-       )
+  defp transform_expression({:::, _, [{function_name, _, [name, ecto_type]}, type]})
        when function_name in @schema_function_names do
     transform_expression(
-      {function_name, [],
-       [name, ecto_type, [__typed_ecto_type__: Macro.escape(type)]]}
+      {function_name, [], [name, ecto_type, [__typed_ecto_type__: Macro.escape(type)]]}
     )
   end
 
   defp transform_expression({:::, _, [{:field, _, [name]}, type]}) do
-    transform_expression(
-      {:field, [], [name, :string, [__typed_ecto_type__: Macro.escape(type)]]}
-    )
+    transform_expression({:field, [], [name, :string, [__typed_ecto_type__: Macro.escape(type)]]})
   end
 
   defp transform_expression(other), do: other

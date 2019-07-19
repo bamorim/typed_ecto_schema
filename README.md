@@ -23,7 +23,7 @@ For now, for documentation, you can check the `typed_ecto_schema.ex` file here.
   - [x] `embeds_many/2`, `embeds_many/3`
   - [ ] `embeds_many/4` (inline)
   - [x] `@primary_key`
-  - [ ] `timestamps/0`, `timestamps/1`
+  - [x] `timestamps/0`, `timestamps/1`
   - [x] `__meta__`
 - [x] Allows overriding types using `::` operator
 - [x] Schema options:

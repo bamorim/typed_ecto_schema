@@ -53,6 +53,7 @@ defmodule TypedEctoSchemaTest do
         has_one(:has_one, HasOne)
         has_many(:has_many, HasMany)
         belongs_to(:belongs_to, BelongsTo)
+        timestamps()
       end
 
       def enforce_keys, do: @enforce_keys
@@ -125,7 +126,9 @@ defmodule TypedEctoSchemaTest do
              :overriden_string,
              :embed,
              :embeds,
-             :belongs_to_id
+             :belongs_to_id,
+             :inserted_at,
+             :updated_at
            ]
   end
 
@@ -197,6 +200,7 @@ defmodule TypedEctoSchemaTest do
           has_one(:has_one, HasOne)
           has_many(:has_many, HasMany)
           belongs_to(:belongs_to, BelongsTo)
+          timestamps()
         end
 
         @type t() :: %__MODULE__{
@@ -215,7 +219,9 @@ defmodule TypedEctoSchemaTest do
                 belongs_to:
                   (BelongsTo.t() | unquote(NotLoaded).t())
                   | nil,
-                belongs_to_id: integer() | nil
+                belongs_to_id: integer() | nil,
+                inserted_at: unquote(NaiveDateTime).t() | nil,
+                updated_at: unquote(NaiveDateTime).t() | nil
               }
       end
 
@@ -278,7 +284,9 @@ defmodule TypedEctoSchemaTest do
           belongs_to:
             (unquote(BelongsTo).t() | unquote(NotLoaded).t())
             | nil,
-          belongs_to_id: integer() | nil
+          belongs_to_id: integer() | nil,
+          inserted_at: unquote(NaiveDateTime).t() | nil,
+          updated_at: unquote(NaiveDateTime).t() | nil
         ]
       end
 
@@ -363,6 +371,80 @@ defmodule TypedEctoSchemaTest do
                      end
                    end
                  end
+  end
+
+  defmodule TimestampsWithAttributeConfig do
+    use TypedEctoSchema
+
+    @timestamps_opts [
+      type: :utc_datetime,
+      inserted_at: :my_inserted_at,
+      updated_at: :my_updated_at,
+      autogenerate: {DateTime, :utc_now, []}
+    ]
+
+    @primary_key false
+    typed_schema "table" do
+      timestamps()
+    end
+  end
+
+  defmodule TimestampsNoUpdatedAt do
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_schema "table" do
+      timestamps(updated_at: false)
+    end
+  end
+
+  defmodule TimestampsNoInsertedAt do
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_schema "table" do
+      timestamps(inserted_at: false)
+    end
+  end
+
+  test "timestamp fields follow the specified name and type" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          my_inserted_at: unquote(DateTime).t() | nil,
+          my_updated_at: unquote(DateTime).t() | nil
+        ]
+      end
+
+    assert delete_context(TimestampsWithAttributeConfig.__typed_schema__(:types)) ==
+             delete_context(types)
+  end
+
+  test "inserted at field is not added when inserted_at: false" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          updated_at: unquote(NaiveDateTime).t() | nil
+        ]
+      end
+
+    assert delete_context(TimestampsNoInsertedAt.__typed_schema__(:types)) ==
+             delete_context(types)
+  end
+
+  test "updated at field is not added when updated_at: false" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          inserted_at: unquote(NaiveDateTime).t() | nil
+        ]
+      end
+
+    assert delete_context(TimestampsNoUpdatedAt.__typed_schema__(:types)) ==
+             delete_context(types)
   end
 
   ##
