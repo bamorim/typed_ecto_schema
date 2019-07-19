@@ -37,7 +37,7 @@ For now, for documentation, you can check the `typed_ecto_schema.ex` file here.
 
 ## Credits
 
-This project started as a fork of the awesome [`typed_struct`](github.com/ejpcmac/typed_struct).
+This project started as a fork of the awesome [`typed_struct`](https://github.com/ejpcmac/typed_struct).
 
 That being said, I'd like to give some special thanks to
 
