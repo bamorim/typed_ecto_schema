@@ -92,7 +92,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
     end
   end
 
-  defp transform_expression({function_name, _, [name, schema, opts, [do: block]]} = call)
+  defp transform_expression({function_name, _, [name, schema, opts, [do: block]]})
        when function_name in @embeds_function_names do
     quote do
       {schema, opts} =
