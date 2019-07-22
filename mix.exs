@@ -8,9 +8,8 @@ defmodule TypedEctoSchema.MixProject do
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      docs: [
-        main: "TypedEctoSchema"
-      ]
+      package: package(),
+      docs: docs()
     ]
   end
 
@@ -34,6 +33,23 @@ defmodule TypedEctoSchema.MixProject do
 
       # Documentation dependencies
       {:ex_doc, "~> 0.21", only: :dev, runtime: false}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "TypedEctoSchema",
+      source_url: "https://github.com/bamorim/typed_ecto_schema"
+    ]
+  end
+
+  defp package do
+    [
+      maintainers: ["Bernardo Amorim"],
+      licenses: ["Apache-2.0"],
+      links: %{
+        "GitHub" => "https://github.com/bamorim/typed_ecto_schema"
+      }
     ]
   end
 end
