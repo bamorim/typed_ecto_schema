@@ -44,9 +44,7 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     |> base_type_for()
     |> wrap_in_list_if_many(function_name)
     |> add_not_loaded_if_assoc(function_name)
-    |> add_nil_if_nullable(
-      field_is_nullable?(nullable_default, function_name, opts)
-    )
+    |> add_nil_if_nullable(field_is_nullable?(nullable_default, function_name, opts))
   end
 
   # Gets the base type for a given Ecto.Type.t()
@@ -108,7 +106,7 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   end
 
   ##
-  ## Type Transformations Helpers
+  ## Type Transformation Helpers
   ##
 
   @spec wrap_in_list_if_many(Macro.t(), function_name()) :: Macro.t()
