@@ -4,8 +4,8 @@ defmodule TypedEctoSchema.SyntaxSugar do
   # This works by transforming calls to Ecto's own macros to also call
   # Our Type Builder
 
-  alias TypedEctoSchema.TypeBuilder
   alias TypedEctoSchema.SyntaxSugar
+  alias TypedEctoSchema.TypeBuilder
 
   @schema_function_names [
     :field,

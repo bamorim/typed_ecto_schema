@@ -9,3 +9,16 @@ otp_release:
   - 20.3
   - 21.3
   - 22.0
+
+before_script:
+  - mix compile --warnings-as-errors
+
+script:
+  - mix test
+  - mix dialyzer --halt-exit-status
+  - mix credo --strict
+
+cache:
+  directories:
+    - _build
+    - deps
