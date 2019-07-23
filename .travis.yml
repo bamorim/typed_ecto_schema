@@ -10,6 +10,9 @@ otp_release:
   - 21.3
   - 22.0
 
+env:
+  - MIX_ENV=test
+
 before_script:
   - mix compile --warnings-as-errors
 
