@@ -9,7 +9,9 @@ defmodule TypedEctoSchema.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
-      docs: docs()
+      docs: docs(),
+      description:
+        "A library to define Ecto schemas with typespecs without all the boilerplate code."
     ]
   end
 
