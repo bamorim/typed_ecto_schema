@@ -1,5 +1,7 @@
 # TypedEctoSchema
 
+[![Build Status](https://travis-ci.org/bamorim/typed_ecto_schema.svg?branch=master)](https://travis-ci.org/bamorim/typed_ecto_schema)
+
 TypedEctoSchema provides a DSL on top of `Ecto.Schema` to define schemas with typespecs without all
 the boilerplate code.
 
