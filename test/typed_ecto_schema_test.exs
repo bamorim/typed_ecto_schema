@@ -57,6 +57,8 @@ defmodule TypedEctoSchemaTest do
       end
 
       def enforce_keys, do: @enforce_keys
+
+      def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
     end
 
   {:module, _name, bytecode_opaque, _exports} =
@@ -93,6 +95,8 @@ defmodule TypedEctoSchemaTest do
       has_one(:has_one, HasOne)
       belongs_to(:belongs_to, BelongsTo)
     end
+
+    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   defmodule LotsOfBelonging do
@@ -105,6 +109,8 @@ defmodule TypedEctoSchemaTest do
       belongs_to(:custom_type, BelongsTo, type: :binary_id)
       belongs_to(:no_define, BelongsTo, define_field: false)
     end
+
+    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   @bytecode bytecode
@@ -290,7 +296,7 @@ defmodule TypedEctoSchemaTest do
         ]
       end
 
-    assert delete_context(TestStruct.__typed_schema__(:types)) ==
+    assert delete_context(TestStruct.get_types()) ==
              delete_context(types)
   end
 
@@ -313,7 +319,7 @@ defmodule TypedEctoSchemaTest do
         ]
       end
 
-    assert delete_context(NotNullTypedEctoSchema.__typed_schema__(:types)) ==
+    assert delete_context(NotNullTypedEctoSchema.get_types()) ==
              delete_context(types)
   end
 
@@ -340,7 +346,7 @@ defmodule TypedEctoSchemaTest do
         ]
       end
 
-    assert delete_context(LotsOfBelonging.__typed_schema__(:types)) ==
+    assert delete_context(LotsOfBelonging.get_types()) ==
              delete_context(types)
   end
 
@@ -387,6 +393,8 @@ defmodule TypedEctoSchemaTest do
     typed_schema "table" do
       timestamps()
     end
+
+    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   defmodule TimestampsNoUpdatedAt do
@@ -396,6 +404,8 @@ defmodule TypedEctoSchemaTest do
     typed_schema "table" do
       timestamps(updated_at: false)
     end
+
+    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   defmodule TimestampsNoInsertedAt do
@@ -405,6 +415,8 @@ defmodule TypedEctoSchemaTest do
     typed_schema "table" do
       timestamps(inserted_at: false)
     end
+
+    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   test "timestamp fields follow the specified name and type" do
@@ -417,7 +429,7 @@ defmodule TypedEctoSchemaTest do
         ]
       end
 
-    assert delete_context(TimestampsWithAttributeConfig.__typed_schema__(:types)) ==
+    assert delete_context(TimestampsWithAttributeConfig.get_types()) ==
              delete_context(types)
   end
 
@@ -430,7 +442,7 @@ defmodule TypedEctoSchemaTest do
         ]
       end
 
-    assert delete_context(TimestampsNoInsertedAt.__typed_schema__(:types)) ==
+    assert delete_context(TimestampsNoInsertedAt.get_types()) ==
              delete_context(types)
   end
 
@@ -443,7 +455,7 @@ defmodule TypedEctoSchemaTest do
         ]
       end
 
-    assert delete_context(TimestampsNoUpdatedAt.__typed_schema__(:types)) ==
+    assert delete_context(TimestampsNoUpdatedAt.get_types()) ==
              delete_context(types)
   end
 
@@ -454,8 +466,12 @@ defmodule TypedEctoSchemaTest do
     typed_embedded_schema do
       embeds_one(:one, One, []) do
         field(:int, :integer) :: non_neg_integer() | nil
+
+        def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
       end
     end
+
+    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   test "we can use inline embeds_one" do
@@ -464,7 +480,7 @@ defmodule TypedEctoSchemaTest do
         [one: unquote(InlineEmbedsOne.One).t() | nil]
       end
 
-    assert delete_context(InlineEmbedsOne.__typed_schema__(:types)) ==
+    assert delete_context(InlineEmbedsOne.get_types()) ==
              delete_context(types)
 
     embed_types =
@@ -472,7 +488,7 @@ defmodule TypedEctoSchemaTest do
         [id: binary() | nil, int: non_neg_integer() | nil]
       end
 
-    assert delete_context(InlineEmbedsOne.One.__typed_schema__(:types)) ==
+    assert delete_context(InlineEmbedsOne.One.get_types()) ==
              delete_context(embed_types)
   end
 
@@ -483,6 +499,8 @@ defmodule TypedEctoSchemaTest do
     typed_embedded_schema do
       embeds_one(:one, One, primary_key: false) do
         field(:int, :integer) :: non_neg_integer() | nil
+
+        def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
       end
     end
   end
@@ -493,7 +511,7 @@ defmodule TypedEctoSchemaTest do
         [int: non_neg_integer() | nil]
       end
 
-    assert delete_context(InlineEmbedsOneNoPK.One.__typed_schema__(:types)) ==
+    assert delete_context(InlineEmbedsOneNoPK.One.get_types()) ==
              delete_context(embed_types)
   end
 
@@ -504,8 +522,12 @@ defmodule TypedEctoSchemaTest do
     typed_embedded_schema do
       embeds_many(:many, Many, []) do
         field(:int, :integer) :: non_neg_integer() | nil
+
+        def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
       end
     end
+
+    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   test "we can use inline embeds_many" do
@@ -514,7 +536,7 @@ defmodule TypedEctoSchemaTest do
         [many: list(unquote(InlineEmbedsMany.Many).t())]
       end
 
-    assert delete_context(InlineEmbedsMany.__typed_schema__(:types)) ==
+    assert delete_context(InlineEmbedsMany.get_types()) ==
              delete_context(types)
 
     embed_types =
@@ -522,7 +544,7 @@ defmodule TypedEctoSchemaTest do
         [id: binary() | nil, int: non_neg_integer() | nil]
       end
 
-    assert delete_context(InlineEmbedsMany.Many.__typed_schema__(:types)) ==
+    assert delete_context(InlineEmbedsMany.Many.get_types()) ==
              delete_context(embed_types)
   end
 
@@ -533,6 +555,8 @@ defmodule TypedEctoSchemaTest do
     typed_embedded_schema do
       embeds_many(:many, Many, primary_key: false) do
         field(:int, :integer) :: non_neg_integer() | nil
+
+        def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
       end
     end
   end
@@ -543,7 +567,7 @@ defmodule TypedEctoSchemaTest do
         [int: non_neg_integer() | nil]
       end
 
-    assert delete_context(InlineEmbedsOneNoPK.One.__typed_schema__(:types)) ==
+    assert delete_context(InlineEmbedsManyNoPK.Many.get_types()) ==
              delete_context(embed_types)
   end
 
