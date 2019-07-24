@@ -58,7 +58,7 @@ defmodule TypedEctoSchemaTest do
 
       def enforce_keys, do: @enforce_keys
 
-      def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+      def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
     end
 
   {:module, _name, bytecode_opaque, _exports} =
@@ -96,7 +96,7 @@ defmodule TypedEctoSchemaTest do
       belongs_to(:belongs_to, BelongsTo)
     end
 
-    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   defmodule LotsOfBelonging do
@@ -110,7 +110,7 @@ defmodule TypedEctoSchemaTest do
       belongs_to(:no_define, BelongsTo, define_field: false)
     end
 
-    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   @bytecode bytecode
@@ -394,7 +394,7 @@ defmodule TypedEctoSchemaTest do
       timestamps()
     end
 
-    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   defmodule TimestampsNoUpdatedAt do
@@ -405,7 +405,7 @@ defmodule TypedEctoSchemaTest do
       timestamps(updated_at: false)
     end
 
-    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   defmodule TimestampsNoInsertedAt do
@@ -416,7 +416,7 @@ defmodule TypedEctoSchemaTest do
       timestamps(inserted_at: false)
     end
 
-    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   test "timestamp fields follow the specified name and type" do
@@ -467,11 +467,11 @@ defmodule TypedEctoSchemaTest do
       embeds_one(:one, One, []) do
         field(:int, :integer) :: non_neg_integer() | nil
 
-        def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+        def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
       end
     end
 
-    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   test "we can use inline embeds_one" do
@@ -500,7 +500,7 @@ defmodule TypedEctoSchemaTest do
       embeds_one(:one, One, primary_key: false) do
         field(:int, :integer) :: non_neg_integer() | nil
 
-        def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+        def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
       end
     end
   end
@@ -523,11 +523,11 @@ defmodule TypedEctoSchemaTest do
       embeds_many(:many, Many, []) do
         field(:int, :integer) :: non_neg_integer() | nil
 
-        def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+        def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
       end
     end
 
-    def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
   test "we can use inline embeds_many" do
@@ -556,7 +556,7 @@ defmodule TypedEctoSchemaTest do
       embeds_many(:many, Many, primary_key: false) do
         field(:int, :integer) :: non_neg_integer() | nil
 
-        def get_types(), do: Enum.reverse(@__typed_ecto_schema_types__)
+        def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
       end
     end
   end
