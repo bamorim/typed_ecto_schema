@@ -237,9 +237,6 @@ defmodule TypedEctoSchema do
   defp postlude(opts) do
     quote do
       unquote(TypeBuilder).define_type(unquote(opts))
-
-      def __typed_schema__(:types),
-        do: Enum.reverse(@__typed_ecto_schema_types__)
     end
   end
 end
