@@ -106,7 +106,7 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   end
 
   ##
-  ## Type Transformations Helpers
+  ## Type Transformation Helpers
   ##
 
   @spec wrap_in_list_if_many(Macro.t(), function_name()) :: Macro.t()
