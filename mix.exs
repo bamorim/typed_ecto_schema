@@ -4,7 +4,7 @@ defmodule TypedEctoSchema.MixProject do
   def project do
     [
       app: :typed_ecto_schema,
-      version: "0.1.0",
+      version: "0.1.1",
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -31,7 +31,7 @@ defmodule TypedEctoSchema.MixProject do
       {:excoveralls, "~> 0.11.1", only: :test, runtime: false},
 
       # Project dependencies
-      {:ecto, "~> 3.1.7"},
+      {:ecto, "~> 3.0"},
 
       # Documentation dependencies
       {:ex_doc, "~> 0.21", only: :dev, runtime: false}
