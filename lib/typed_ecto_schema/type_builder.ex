@@ -128,7 +128,7 @@ defmodule TypedEctoSchema.TypeBuilder do
         ecto_type,
         function_name,
         Keyword.get(schema_opts, :null),
-        Keyword.take(field_opts, [:null])
+        Keyword.take(field_opts, [:null, :values])
       )
 
     overriden_type = Keyword.get(field_opts, :__typed_ecto_type__, type)

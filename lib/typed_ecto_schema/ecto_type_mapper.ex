@@ -34,59 +34,64 @@ defmodule TypedEctoSchema.EctoTypeMapper do
           | :has_many
           | :belongs_to
 
-  @type field_option :: {:null, boolean()}
+  @type field_option :: {:null, boolean()} | {:values, list(atom())}
   @type field_options :: list(field_option)
 
   @spec type_for(Ecto.Type.t(), function_name(), boolean(), field_options()) ::
           Macro.t()
   def type_for(ecto_type, function_name, nullable_default, opts) do
     ecto_type
-    |> base_type_for()
+    |> base_type_for(opts)
     |> wrap_in_list_if_many(function_name)
     |> add_not_loaded_if_assoc(function_name)
     |> add_nil_if_nullable(field_is_nullable?(nullable_default, function_name, opts))
   end
 
   # Gets the base type for a given Ecto.Type.t()
-  @spec base_type_for(Ecto.Type.t()) :: Macro.t()
-  defp base_type_for(atom) when atom in @module_for_ecto_type_keys do
+  @spec base_type_for(Ecto.Type.t(), field_options()) :: Macro.t()
+  defp base_type_for(atom, _opts) when atom in @module_for_ecto_type_keys do
     quote do
       unquote(Map.get(@module_for_ecto_type, atom)).t()
     end
   end
 
-  defp base_type_for(atom) when atom in @direct_types do
+  defp base_type_for(atom, _opts) when atom in @direct_types do
     quote do
       unquote(atom)()
     end
   end
 
-  defp base_type_for(:binary_id) do
+  defp base_type_for(:binary_id, _opts) do
     quote do
       binary()
     end
   end
 
-  defp base_type_for(:id) do
+  defp base_type_for(:id, _opts) do
     quote do
       integer()
     end
   end
 
-  defp base_type_for({:array, type}) do
+  defp base_type_for({:array, type}, opts) do
     quote do
-      list(unquote(base_type_for(type)))
+      list(unquote(base_type_for(type, opts)))
     end
   end
 
-  defp base_type_for({:map, type}) do
+  defp base_type_for({:map, type}, opts) do
     quote do
-      %{optional(any()) => unquote(base_type_for(type))}
+      %{optional(any()) => unquote(base_type_for(type, opts))}
     end
   end
 
-  defp base_type_for(atom) when is_atom(atom) do
+  defp base_type_for(atom, opts) when is_atom(atom) do
     case to_string(atom) do
+      "Elixir.Ecto.Enum" ->
+        opts
+        |> Keyword.get(:values, [])
+        |> disjunction_typespec()
+
       "Elixir." <> _ ->
         quote do
           unquote(atom).t()
@@ -99,7 +104,7 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     end
   end
 
-  defp base_type_for(_) do
+  defp base_type_for(_, _opts) do
     quote do
       any()
     end
@@ -108,6 +113,23 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   ##
   ## Type Transformation Helpers
   ##
+
+  @spec disjunction_typespec(list(atom())) :: Macro.t()
+  defp disjunction_typespec([sole_item]) when is_atom(sole_item) do
+    sole_item
+  end
+
+  defp disjunction_typespec([first, last]) when is_atom(first) and is_atom(last) do
+    quote do
+      unquote(first) | unquote(last)
+    end
+  end
+
+  defp disjunction_typespec([head | tail]) when is_atom(head) do
+    quote do
+      unquote(head) | unquote(disjunction_typespec(tail))
+    end
+  end
 
   @spec wrap_in_list_if_many(Macro.t(), function_name()) :: Macro.t()
   defp wrap_in_list_if_many(type, function_name)

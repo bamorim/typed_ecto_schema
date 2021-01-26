@@ -31,7 +31,7 @@ defmodule TypedEctoSchema.MixProject do
       {:excoveralls, "~> 0.11.1", only: :test, runtime: false},
 
       # Project dependencies
-      {:ecto, "~> 3.0"},
+      {:ecto, "~> 3.5"},
 
       # Documentation dependencies
       {:ex_doc, "~> 0.21", only: :dev, runtime: false}
