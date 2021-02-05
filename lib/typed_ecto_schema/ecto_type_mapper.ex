@@ -1,14 +1,13 @@
 defmodule TypedEctoSchema.EctoTypeMapper do
   @moduledoc false
 
-  alias Ecto.Association.NotLoaded
-
-  @schema_many_function_name [:embeds_many, :has_many]
+  @schema_many_function_name [:embeds_many, :has_many, :many_to_many]
 
   @schema_assoc_function_name [
     :has_many,
     :has_one,
-    :belongs_to
+    :belongs_to,
+    :many_to_many
   ]
 
   @module_for_ecto_type %{
@@ -42,9 +41,9 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   def type_for(ecto_type, function_name, nullable_default, opts) do
     ecto_type
     |> base_type_for(opts)
-    |> wrap_in_list_if_many(function_name)
-    |> add_not_loaded_if_assoc(function_name)
+    |> wrap_embeds_many(function_name)
     |> add_nil_if_nullable(field_is_nullable?(nullable_default, function_name, opts))
+    |> wrap_assoc_type(function_name)
   end
 
   # Gets the base type for a given Ecto.Type.t()
@@ -137,23 +136,26 @@ defmodule TypedEctoSchema.EctoTypeMapper do
       any()
     end
   end
-  @spec wrap_in_list_if_many(Macro.t(), function_name()) :: Macro.t()
-  defp wrap_in_list_if_many(type, function_name)
-       when function_name in @schema_many_function_name do
+
+  @spec wrap_assoc_type(Macro.t(), function_name()) :: Macro.t()
+  defp wrap_assoc_type(type, function_name) when function_name in @schema_assoc_function_name do
+    quote do
+      unquote(Ecto.Schema).unquote(function_name)(unquote(type))
+    end
+  end
+
+  defp wrap_assoc_type(type, _function_name) do
+    type
+  end
+
+  @spec wrap_embeds_many(Macro.t(), function_name()) :: Macro.t()
+  defp wrap_embeds_many(type, :embeds_many) do
     quote do
       list(unquote(type))
     end
   end
 
-  defp wrap_in_list_if_many(type, _), do: type
-
-  @spec add_not_loaded_if_assoc(Macro.t(), function_name()) :: Macro.t()
-  defp add_not_loaded_if_assoc(type, function_name)
-       when function_name in @schema_assoc_function_name do
-    quote(do: unquote(type) | unquote(NotLoaded).t())
-  end
-
-  defp add_not_loaded_if_assoc(type, _), do: type
+  defp wrap_embeds_many(type, _), do: type
 
   @spec add_nil_if_nullable(Macro.t(), nullable :: boolean) :: Macro.t()
   defp add_nil_if_nullable(type, false), do: type

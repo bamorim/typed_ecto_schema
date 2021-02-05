@@ -37,6 +37,14 @@ defmodule TypedEctoSchemaTest do
     end
   end
 
+  defmodule ManyToMany do
+    use TypedEctoSchema
+
+    typed_schema "many_to_many" do
+      field(:int, :integer)
+    end
+  end
+
   {:module, _name, bytecode, _exports} =
     defmodule TestStruct do
       use TypedEctoSchema
@@ -57,6 +65,7 @@ defmodule TypedEctoSchemaTest do
         has_one(:has_one, HasOne)
         has_many(:has_many, HasMany)
         belongs_to(:belongs_to, BelongsTo)
+        many_to_many(:many_to_many, ManyToMany, join_through: "join_table")
         timestamps()
       end
 
@@ -218,6 +227,7 @@ defmodule TypedEctoSchemaTest do
           has_one(:has_one, HasOne)
           has_many(:has_many, HasMany)
           belongs_to(:belongs_to, BelongsTo)
+          many_to_many(:many_to_many, ManyToMany, join_through: "join_table")
           timestamps()
         end
 
@@ -236,12 +246,11 @@ defmodule TypedEctoSchemaTest do
                 enum_type_required: :foo1 | :foo2 | :foo3,
                 embed: Embedded.t() | nil,
                 embeds: list(Embedded.t()),
-                has_one: (HasOne.t() | unquote(NotLoaded).t()) | nil,
-                has_many: list(HasMany.t()) | unquote(NotLoaded).t(),
-                belongs_to:
-                  (BelongsTo.t() | unquote(NotLoaded).t())
-                  | nil,
+                has_one: unquote(Ecto.Schema).has_one(unquote(HasOne).t() | nil),
+                has_many: unquote(Ecto.Schema).has_many(unquote(HasMany).t()),
+                belongs_to: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t() | nil),
                 belongs_to_id: integer() | nil,
+                many_to_many: unquote(Ecto.Schema).many_to_many(unquote(ManyToMany).t()),
                 inserted_at: unquote(NaiveDateTime).t() | nil,
                 updated_at: unquote(NaiveDateTime).t() | nil
               }
@@ -303,14 +312,11 @@ defmodule TypedEctoSchemaTest do
           enum_type_required: :foo1 | :foo2 | :foo3,
           embed: unquote(Embedded).t() | nil,
           embeds: list(unquote(Embedded).t()),
-          has_one:
-            (unquote(HasOne).t() | unquote(NotLoaded).t())
-            | nil,
-          has_many: list(unquote(HasMany).t()) | unquote(NotLoaded).t(),
-          belongs_to:
-            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
-            | nil,
+          has_one: unquote(Ecto.Schema).has_one(unquote(HasOne).t() | nil),
+          has_many: unquote(Ecto.Schema).has_many(unquote(HasMany).t()),
+          belongs_to: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t() | nil),
           belongs_to_id: integer() | nil,
+          many_to_many: unquote(Ecto.Schema).many_to_many(unquote(ManyToMany).t()),
           inserted_at: unquote(NaiveDateTime).t() | nil,
           updated_at: unquote(NaiveDateTime).t() | nil
         ]
@@ -329,12 +335,8 @@ defmodule TypedEctoSchemaTest do
           normal: integer(),
           enforced: integer(),
           overriden: integer() | nil,
-          has_one:
-            (unquote(HasOne).t() | unquote(NotLoaded).t())
-            | nil,
-          belongs_to:
-            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
-            | nil,
+          has_one: unquote(Ecto.Schema).has_one(unquote(HasOne).t() | nil),
+          belongs_to: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t() | nil),
           belongs_to_id: integer()
         ]
       end
@@ -348,21 +350,13 @@ defmodule TypedEctoSchemaTest do
       quote do
         [
           __meta__: unquote(Metadata).t(),
-          normal:
-            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
-            | nil,
+          normal: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t() | nil),
           normal_id: integer() | nil,
-          with_custom_fk:
-            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
-            | nil,
+          with_custom_fk: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t() | nil),
           custom_fk: integer() | nil,
-          custom_type:
-            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
-            | nil,
+          custom_type: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t() | nil),
           custom_type_id: binary() | nil,
-          no_define:
-            (unquote(BelongsTo).t() | unquote(NotLoaded).t())
-            | nil
+          no_define: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t() | nil)
         ]
       end
 

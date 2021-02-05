@@ -13,7 +13,8 @@ defmodule TypedEctoSchema.SyntaxSugar do
     :embeds_many,
     :has_one,
     :has_many,
-    :belongs_to
+    :belongs_to,
+    :many_to_many
   ]
 
   @embeds_function_names [:embeds_one, :embeds_many]
