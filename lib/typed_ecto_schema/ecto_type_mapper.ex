@@ -131,6 +131,12 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     end
   end
 
+  # Fallback for `Ecto.Enum` with ill-defined `:values`
+  defp disjunction_typespec(_) do
+    quote do
+      any()
+    end
+  end
   @spec wrap_in_list_if_many(Macro.t(), function_name()) :: Macro.t()
   defp wrap_in_list_if_many(type, function_name)
        when function_name in @schema_many_function_name do
