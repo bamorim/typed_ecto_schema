@@ -42,8 +42,8 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     ecto_type
     |> base_type_for(opts)
     |> wrap_embeds_many(function_name)
-    |> add_nil_if_nullable(field_is_nullable?(nullable_default, function_name, opts))
     |> wrap_assoc_type(function_name)
+    |> add_nil_if_nullable(field_is_nullable?(nullable_default, function_name, opts))
   end
 
   # Gets the base type for a given Ecto.Type.t()
