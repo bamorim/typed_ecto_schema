@@ -48,6 +48,10 @@ defmodule TypedEctoSchemaTest do
         field(:enforced_int, :integer, enforce: true)
         field(:overriden_type, :integer) :: 1 | 2 | 3
         field(:overriden_string) :: any()
+        field(:enum_type1, Ecto.Enum, values: [:foo1])
+        field(:enum_type2, Ecto.Enum, values: [:foo1, :foo2])
+        field(:enum_type3, Ecto.Enum, values: [:foo1, :foo2, :foo3])
+        field(:enum_type_required, Ecto.Enum, values: [:foo1, :foo2, :foo3], null: false)
         embeds_one(:embed, Embedded)
         embeds_many(:embeds, Embedded)
         has_one(:has_one, HasOne)
@@ -130,6 +134,10 @@ defmodule TypedEctoSchemaTest do
              :enforced_int,
              :overriden_type,
              :overriden_string,
+             :enum_type1,
+             :enum_type2,
+             :enum_type3,
+             :enum_type_required,
              :embed,
              :embeds,
              :belongs_to_id,
@@ -201,6 +209,10 @@ defmodule TypedEctoSchemaTest do
           field(:enforced_int, :integer)
           field(:overriden_type, :integer)
           field(:overriden_string)
+          field(:enum_type1, Ecto.Enum, values: [:foo1])
+          field(:enum_type2, Ecto.Enum, values: [:foo1, :foo2])
+          field(:enum_type3, Ecto.Enum, values: [:foo1, :foo2, :foo3])
+          field(:enum_type_required, Ecto.Enum, values: [:foo1, :foo2, :foo3], null: false)
           embeds_one(:embed, Embedded)
           embeds_many(:embeds, Embedded)
           has_one(:has_one, HasOne)
@@ -218,6 +230,10 @@ defmodule TypedEctoSchemaTest do
                 enforced_int: integer() | nil,
                 overriden_type: 1 | 2 | 3,
                 overriden_string: any(),
+                enum_type1: :foo1 | nil,
+                enum_type2: (:foo1 | :foo2) | nil,
+                enum_type3: (:foo1 | :foo2 | :foo3) | nil,
+                enum_type_required: :foo1 | :foo2 | :foo3,
                 embed: Embedded.t() | nil,
                 embeds: list(Embedded.t()),
                 has_one: (HasOne.t() | unquote(NotLoaded).t()) | nil,
@@ -281,6 +297,10 @@ defmodule TypedEctoSchemaTest do
           enforced_int: integer() | nil,
           overriden_type: 1 | 2 | 3,
           overriden_string: any(),
+          enum_type1: :foo1 | nil,
+          enum_type2: (:foo1 | :foo2) | nil,
+          enum_type3: (:foo1 | :foo2 | :foo3) | nil,
+          enum_type_required: :foo1 | :foo2 | :foo3,
           embed: unquote(Embedded).t() | nil,
           embeds: list(unquote(Embedded).t()),
           has_one:
