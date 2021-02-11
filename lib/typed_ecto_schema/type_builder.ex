@@ -10,6 +10,7 @@ defmodule TypedEctoSchema.TypeBuilder do
           | :has_one
           | :has_many
           | :belongs_to
+          | :many_to_many
 
   @typep schema_option ::
            {:null, boolean()}
