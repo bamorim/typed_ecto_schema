@@ -1,16 +1,23 @@
 language: elixir
 
 elixir:
-  - 1.8.2
   - 1.9.4
-  - 1.10.2
+  - 1.10.4
+  - 1.11.3
 
 otp_release:
   - 21.3
   - 22.3
+  - 23.2
 
 env:
   - MIX_ENV=test
+
+jobs:
+  exclude:
+    - env: MIX_ENV=test
+      elixir: 1.9.4
+      otp_release: 23.2
 
 before_script:
   - mix compile --warnings-as-errors
