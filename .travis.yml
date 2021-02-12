@@ -15,9 +15,8 @@ env:
 
 jobs:
   exclude:
-    - env: MIX_ENV=test
-      elixir: 1.9.4
-      otp_release: 23.2
+    - elixir: 1.9.4
+      otp_release: 23.0
 
 before_script:
   - mix compile --warnings-as-errors
