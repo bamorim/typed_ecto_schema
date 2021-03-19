@@ -59,7 +59,7 @@ end
 Install it, add to your deps:
 
 ```elixir
-{:typed_ecto_schema, "~> 0.1.0"}
+{:typed_ecto_schema, "~> 0.2.0"}
 ```
 
 And change your `use Ecto.Schema` for `use TypedEctoSchema` and change the calls to `schema` for
