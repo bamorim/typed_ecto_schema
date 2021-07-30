@@ -126,6 +126,20 @@ defmodule TypedEctoSchemaTest do
     def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
+  defmodule GloballyConfiguredKeys do
+    use TypedEctoSchema
+
+    @primary_key {:id, :binary_id, read_after_writes: true}
+    @foreign_key_type :binary_id
+    typed_schema "table" do
+      belongs_to(:normal, BelongsTo)
+      belongs_to(:custom_type, BelongsTo, type: :integer)
+      belongs_to(:no_define, BelongsTo, define_field: false)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
   @bytecode bytecode
   @bytecode_opaque bytecode_opaque
 
@@ -342,6 +356,24 @@ defmodule TypedEctoSchemaTest do
       end
 
     assert delete_context(NotNullTypedEctoSchema.get_types()) ==
+             delete_context(types)
+  end
+
+  test "globally configured keys" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          id: binary() | nil,
+          normal: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t()) | nil,
+          normal_id: binary() | nil,
+          custom_type: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t()) | nil,
+          custom_type_id: integer() | nil,
+          no_define: unquote(Ecto.Schema).belongs_to(unquote(BelongsTo).t()) | nil
+        ]
+      end
+
+    assert delete_context(GloballyConfiguredKeys.get_types()) ==
              delete_context(types)
   end
 
