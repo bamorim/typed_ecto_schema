@@ -149,7 +149,7 @@ defmodule TypedEctoSchema.TypeBuilder do
         mod,
         :field,
         Keyword.get(field_opts, :foreign_key, :"#{name}_id"),
-        Keyword.get(field_opts, :type, :integer),
+        Keyword.get(field_opts, :type, Module.get_attribute(mod, :foreign_key_type, :integer)),
         field_opts
       )
     end
