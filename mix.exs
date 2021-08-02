@@ -26,7 +26,7 @@ defmodule TypedEctoSchema.MixProject do
   defp deps do
     [
       # Development and test dependencies
-      {:credo, "~> 1.1", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.11.1", only: :test, runtime: false},
 
