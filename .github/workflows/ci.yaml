@@ -1,0 +1,49 @@
+name: CI
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        elixir-version:
+          - 1.11.4
+          - 1.12.2
+        otp-version:
+          - 22.3
+          - 23.3
+          - 24.0
+        include:
+          - elixir-version: 1.9.4
+            otp-version: 21.3
+          - elixir-version: 1.9.4
+            otp-version: 22.3
+          - elixir-version: 1.10.4
+            otp-version: 22.3
+          - elixir-version: 1.10.4
+            otp-version: 24.0
+        
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp-version }}
+          elixir-version: ${{ matrix.elixir-version }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-${{ matrix.otp-version }}-${{ matrix.elixir-version }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.otp-version }}-${{ matrix.elixir-version }}-mix-
+      - run: mix deps.get
+      - run: mix test
+      - run: mix dialyzer --halt-exit-status
+      - run: mix credo --strict
