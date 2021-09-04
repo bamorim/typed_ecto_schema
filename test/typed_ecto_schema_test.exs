@@ -617,6 +617,30 @@ defmodule TypedEctoSchemaTest do
              delete_context(embed_types)
   end
 
+  defmodule WithMacrosInsideBlock do
+    use TypedEctoSchema
+
+    import TypedEctoSchema.TestMacros
+
+    @primary_key false
+    typed_schema "foo" do
+      add_field(:foo, :integer)
+      TypedEctoSchema.TestMacros.add_field(:bar, :float)
+      field(:baz, :boolean)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  test "we can use macros inside the block" do
+    assert [
+             _,
+             foo: {:|, [], [{:integer, [], []}, nil]},
+             bar: {:|, [], [{:float, [], []}, nil]},
+             baz: {:|, [], [{:boolean, [], []}, nil]}
+           ] = delete_context(WithMacrosInsideBlock.get_types())
+  end
+
   ##
   ## Helpers
   ##
