@@ -99,7 +99,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
       {schema, opts} =
         unquote(SyntaxSugar).__embeds_module__(
           __ENV__,
-          unquote(Macro.escape(schema)),
+          unquote(schema),
           unquote(opts),
           unquote(Macro.escape(block))
         )
@@ -120,28 +120,28 @@ defmodule TypedEctoSchema.SyntaxSugar do
     transform_expression({:timestamps, ctx, [[]]})
   end
 
-  defp transform_expression({:"::", _, [{function_name, _, [name, ecto_type, opts]}, type]})
+  defp transform_expression({:::, _, [{function_name, _, [name, ecto_type, opts]}, type]})
        when function_name in @schema_function_names do
     transform_expression(
       {function_name, [], [name, ecto_type, [{:__typed_ecto_type__, Macro.escape(type)} | opts]]}
     )
   end
 
-  defp transform_expression({:"::", _, [{function_name, _, [name, ecto_type]}, type]})
+  defp transform_expression({:::, _, [{function_name, _, [name, ecto_type]}, type]})
        when function_name in @schema_function_names do
     transform_expression(
       {function_name, [], [name, ecto_type, [__typed_ecto_type__: Macro.escape(type)]]}
     )
   end
 
-  defp transform_expression({:"::", _, [{:field, _, [name]}, type]}) do
+  defp transform_expression({:::, _, [{:field, _, [name]}, type]}) do
     transform_expression({:field, [], [name, :string, [__typed_ecto_type__: Macro.escape(type)]]})
   end
 
   defp transform_expression(other), do: other
 
   @doc false
-  def __embeds_module__(env, {:__aliases__, _, module_parts}, opts, block) do
+  def __embeds_module__(env, name, opts, block) do
     {pk, opts} = Keyword.pop(opts, :primary_key, {:id, :binary_id, autogenerate: true})
 
     block =
@@ -154,10 +154,8 @@ defmodule TypedEctoSchema.SyntaxSugar do
         end
       end
 
-    module = Module.concat(Module.split(env.module) ++ module_parts)
+    module = Module.concat(env.module, name)
     Module.create(module, block, env)
-
-    concatenated_module_parts = Module.split(module) |> Enum.map(&String.to_atom/1)
-    {{:__aliases__, [], concatenated_module_parts}, opts}
+    {module, opts}
   end
 end

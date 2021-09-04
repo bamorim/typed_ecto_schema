@@ -523,7 +523,7 @@ defmodule TypedEctoSchemaTest do
   test "we can use inline embeds_one" do
     types =
       quote do
-        [one: TypedEctoSchemaTest.InlineEmbedsOne.One.t() | nil]
+        [one: unquote(InlineEmbedsOne.One).t() | nil]
       end
 
     assert delete_context(InlineEmbedsOne.get_types()) ==
@@ -579,7 +579,7 @@ defmodule TypedEctoSchemaTest do
   test "we can use inline embeds_many" do
     types =
       quote do
-        [many: list(TypedEctoSchemaTest.InlineEmbedsMany.Many.t())]
+        [many: list(unquote(InlineEmbedsMany.Many).t())]
       end
 
     assert delete_context(InlineEmbedsMany.get_types()) ==
@@ -590,7 +590,7 @@ defmodule TypedEctoSchemaTest do
         [id: binary() | nil, int: non_neg_integer() | nil]
       end
 
-    assert delete_context(TypedEctoSchemaTest.InlineEmbedsMany.Many.get_types()) ==
+    assert delete_context(InlineEmbedsMany.Many.get_types()) ==
              delete_context(embed_types)
   end
 
