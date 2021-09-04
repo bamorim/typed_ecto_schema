@@ -47,7 +47,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
         __MODULE__,
         unquote(function_name),
         unquote(name),
-        unquote(type),
+        unquote(Macro.escape(type)),
         unquote(opts)
       )
     end
@@ -62,7 +62,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
         __MODULE__,
         unquote(function_name),
         unquote(name),
-        unquote(type),
+        unquote(Macro.escape(type)),
         []
       )
     end

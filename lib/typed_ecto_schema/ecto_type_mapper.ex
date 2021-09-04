@@ -84,6 +84,18 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     end
   end
 
+  defp base_type_for({:__aliases__, _, [:Ecto, :Enum]}, opts) do
+    opts
+    |> Keyword.get(:values, [])
+    |> disjunction_typespec()
+  end
+
+  defp base_type_for({:__aliases__, _, _} = ast, _opts) do
+    quote do
+      unquote(ast).t()
+    end
+  end
+
   defp base_type_for(atom, opts) when is_atom(atom) do
     case to_string(atom) do
       "Elixir.Ecto.Enum" ->
