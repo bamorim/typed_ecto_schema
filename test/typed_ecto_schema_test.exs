@@ -617,6 +617,12 @@ defmodule TypedEctoSchemaTest do
              delete_context(embed_types)
   end
 
+  test "syntactic sugar for embedded fields is correct" do
+    assert %Ecto.Changeset{} =
+             Ecto.Changeset.change(%InlineEmbedsOne{})
+             |> Ecto.Changeset.put_embed(:one, %{int: 123})
+  end
+
   ##
   ## Helpers
   ##
