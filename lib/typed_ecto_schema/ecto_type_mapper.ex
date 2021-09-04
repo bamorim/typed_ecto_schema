@@ -46,8 +46,8 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     |> add_nil_if_nullable(field_is_nullable?(nullable_default, function_name, opts))
   end
 
-  # Gets the base type for a given Ecto.Type.t()
-  @spec base_type_for(Ecto.Type.t(), field_options()) :: Macro.t()
+  # Gets the base type for a given Ecto.Type.t() or an AST representing a referenced type
+  @spec base_type_for(Ecto.Type.t() | Macro.t(), field_options()) :: Macro.t()
   defp base_type_for(atom, _opts) when atom in @module_for_ecto_type_keys do
     quote do
       unquote(Map.get(@module_for_ecto_type, atom)).t()
@@ -84,22 +84,15 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     end
   end
 
-  defp base_type_for(atom, opts) when is_atom(atom) do
-    case to_string(atom) do
-      "Elixir.Ecto.Enum" ->
-        opts
-        |> Keyword.get(:values, [])
-        |> disjunction_typespec()
+  defp base_type_for({:__aliases__, _, [:Ecto, :Enum]}, opts) do
+    opts
+    |> Keyword.get(:values, [])
+    |> disjunction_typespec()
+  end
 
-      "Elixir." <> _ ->
-        quote do
-          unquote(atom).t()
-        end
-
-      _ ->
-        quote do
-          any()
-        end
+  defp base_type_for({:__aliases__, _, _} = ast, _opts) do
+    quote do
+      unquote(ast).t()
     end
   end
 
