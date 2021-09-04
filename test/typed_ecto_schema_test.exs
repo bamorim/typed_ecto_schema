@@ -617,6 +617,29 @@ defmodule TypedEctoSchemaTest do
              delete_context(embed_types)
   end
 
+  defmodule RelationWithCustomSource do
+    use TypedEctoSchema
+
+    typed_schema "foo" do
+      has_many(:many, {"some_source", HasMany}, foreign_key: :table_id)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  test "we can use the source override support of Ecto when referring to schema's" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          id: integer() | nil,
+          many: unquote(Ecto.Schema).has_many(unquote(HasMany).t())
+        ]
+      end
+
+    assert delete_context(types) == delete_context(RelationWithCustomSource.get_types())
+  end
+
   ##
   ## Helpers
   ##

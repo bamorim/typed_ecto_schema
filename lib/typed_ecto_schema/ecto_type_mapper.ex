@@ -47,7 +47,11 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   end
 
   # Gets the base type for a given Ecto.Type.t()
-  @spec base_type_for(Ecto.Type.t(), field_options()) :: Macro.t()
+  @spec base_type_for(Ecto.Type.t() | {String.t(), Ecto.Type.t()}, field_options()) :: Macro.t()
+  defp base_type_for({source, actual_type}, opts) when is_binary(source) do
+    base_type_for(actual_type, opts)
+  end
+
   defp base_type_for(atom, _opts) when atom in @module_for_ecto_type_keys do
     quote do
       unquote(Map.get(@module_for_ecto_type, atom)).t()
