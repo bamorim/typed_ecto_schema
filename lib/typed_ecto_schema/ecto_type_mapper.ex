@@ -46,8 +46,8 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     |> add_nil_if_nullable(field_is_nullable?(nullable_default, function_name, opts))
   end
 
-  # Gets the base type for a given Ecto.Type.t()
-  @spec base_type_for(Ecto.Type.t(), field_options()) :: Macro.t()
+  # Gets the base type for a given Ecto.Type.t() or an AST representing a referenced type
+  @spec base_type_for(Ecto.Type.t() | Macro.t(), field_options()) :: Macro.t()
   defp base_type_for(atom, _opts) when atom in @module_for_ecto_type_keys do
     quote do
       unquote(Map.get(@module_for_ecto_type, atom)).t()
