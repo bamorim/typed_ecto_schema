@@ -633,11 +633,35 @@ defmodule TypedEctoSchemaTest do
         [
           __meta__: unquote(Metadata).t(),
           id: integer() | nil,
-          many: unquote(Ecto.Schema).has_many(unquote(HasMany).t())
+          many: unquote(Ecto.Schema).has_many(HasMany.t())
         ]
       end
 
     assert delete_context(types) == delete_context(RelationWithCustomSource.get_types())
+  end
+
+  defmodule WithMacrosInsideBlock do
+    use TypedEctoSchema
+
+    import TypedEctoSchema.TestMacros
+
+    @primary_key false
+    typed_schema "foo" do
+      add_field(:foo, :integer)
+      TypedEctoSchema.TestMacros.add_field(:bar, :float)
+      field(:baz, :boolean)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  test "we can use macros inside the block" do
+    assert [
+             _,
+             foo: {:|, [], [{:integer, [], []}, nil]},
+             bar: {:|, [], [{:float, [], []}, nil]},
+             baz: {:|, [], [{:boolean, [], []}, nil]}
+           ] = delete_context(WithMacrosInsideBlock.get_types())
   end
 
   ##
