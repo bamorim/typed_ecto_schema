@@ -647,8 +647,9 @@ defmodule TypedEctoSchemaTest do
 
     @primary_key false
     typed_schema "foo" do
-      add_field(:foo, :integer)
-      TypedEctoSchema.TestMacros.add_field(:bar, :float)
+      add_single_field(:foo, :integer)
+      TypedEctoSchema.TestMacros.add_single_field(:bar, :float)
+      TypedEctoSchema.TestMacros.add_two_fields(:f0, :boolean, :f1, :string)
       field(:baz, :boolean)
     end
 
@@ -660,6 +661,8 @@ defmodule TypedEctoSchemaTest do
              _,
              foo: {:|, [], [{:integer, [], []}, nil]},
              bar: {:|, [], [{:float, [], []}, nil]},
+             f0: {:|, [], [{:boolean, [], []}, nil]},
+             f1: {:|, [], [{{:., [], [String, :t]}, [], []}, nil]},
              baz: {:|, [], [{:boolean, [], []}, nil]}
            ] = delete_context(WithMacrosInsideBlock.get_types())
   end

@@ -146,10 +146,16 @@ defmodule TypedEctoSchema.SyntaxSugar do
   defp transform_expression(unknown, env) do
     expanded = Macro.expand(unknown, env)
 
-    if expanded == unknown do
-      unknown
-    else
-      transform_expression(expanded, env)
+    case expanded do
+      ^unknown ->
+        unknown
+
+      {:__block__, block_context, calls} ->
+        new_calls = Enum.map(calls, &transform_expression(&1, env))
+        {:__block__, block_context, new_calls}
+
+      call ->
+        transform_expression(call, env)
     end
   end
 
