@@ -99,7 +99,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
       {schema, opts} =
         unquote(SyntaxSugar).__embeds_module__(
           __ENV__,
-          unquote(schema),
+          unquote(Macro.escape(schema)),
           unquote(opts),
           unquote(Macro.escape(block))
         )
@@ -141,7 +141,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
   defp transform_expression(other), do: other
 
   @doc false
-  def __embeds_module__(env, name, opts, block) do
+  def __embeds_module__(env, {:__aliases__, _, name}, opts, block) do
     {pk, opts} = Keyword.pop(opts, :primary_key, {:id, :binary_id, autogenerate: true})
 
     block =
@@ -154,7 +154,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
         end
       end
 
-    module = Module.concat(env.module, name)
+    module = Module.concat(env.module,  Module.concat(name))
     Module.create(module, block, env)
     {module, opts}
   end
