@@ -193,7 +193,7 @@ defmodule TypedEctoSchema do
       unquote(prelude(opts))
 
       Ecto.Schema.embedded_schema do
-        unquote(inner(block))
+        unquote(inner(block, __CALLER__))
       end
 
       unquote(postlude(opts))
@@ -210,7 +210,7 @@ defmodule TypedEctoSchema do
       unquote(TypeBuilder).add_meta(__MODULE__)
 
       Ecto.Schema.schema unquote(table_name) do
-        unquote(inner(block))
+        unquote(inner(block, __CALLER__))
       end
 
       unquote(postlude(opts))
@@ -224,10 +224,10 @@ defmodule TypedEctoSchema do
     end
   end
 
-  defp inner(block) do
+  defp inner(block, env) do
     quote do
       unquote(TypeBuilder).add_primary_key(__MODULE__)
-      unquote(SyntaxSugar.apply_to_block(block))
+      unquote(SyntaxSugar.apply_to_block(block, env))
       unquote(TypeBuilder).enforce_keys()
     end
   end

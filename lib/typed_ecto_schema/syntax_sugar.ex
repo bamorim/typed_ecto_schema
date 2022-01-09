@@ -19,8 +19,8 @@ defmodule TypedEctoSchema.SyntaxSugar do
 
   @embeds_function_names [:embeds_one, :embeds_many]
 
-  @spec apply_to_block(Macro.t()) :: Macro.t()
-  def apply_to_block(block) do
+  @spec apply_to_block(Macro.t(), Macro.Env.t()) :: Macro.t()
+  def apply_to_block(block, env) do
     calls =
       case block do
         {:__block__, _, calls} ->
@@ -30,13 +30,13 @@ defmodule TypedEctoSchema.SyntaxSugar do
           [call]
       end
 
-    new_calls = Enum.map(calls, &transform_expression/1)
+    new_calls = Enum.map(calls, &transform_expression(&1, env))
 
     {:__block__, [], new_calls}
   end
 
-  @spec transform_expression(Macro.t()) :: Macro.t()
-  defp transform_expression({function_name, _, [name, type, opts]})
+  @spec transform_expression(Macro.t(), Macro.Env.t()) :: Macro.t()
+  defp transform_expression({function_name, _, [name, type, opts]}, _env)
        when function_name in @schema_function_names do
     ecto_opts = Keyword.drop(opts, [:__typed_ecto_type__, :enforce])
 
@@ -47,13 +47,13 @@ defmodule TypedEctoSchema.SyntaxSugar do
         __MODULE__,
         unquote(function_name),
         unquote(name),
-        unquote(type),
+        unquote(Macro.escape(type)),
         unquote(opts)
       )
     end
   end
 
-  defp transform_expression({function_name, _, [name, type]})
+  defp transform_expression({function_name, _, [name, type]}, _env)
        when function_name in @schema_function_names do
     quote do
       unquote(function_name)(unquote(name), unquote(type))
@@ -62,13 +62,13 @@ defmodule TypedEctoSchema.SyntaxSugar do
         __MODULE__,
         unquote(function_name),
         unquote(name),
-        unquote(type),
+        unquote(Macro.escape(type)),
         []
       )
     end
   end
 
-  defp transform_expression({:field, _, [name]}) do
+  defp transform_expression({:field, _, [name]}, _env) do
     quote do
       field(unquote(name))
 
@@ -82,7 +82,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
     end
   end
 
-  defp transform_expression({:timestamps, _, [opts]} = call) do
+  defp transform_expression({:timestamps, _, [opts]} = call, _env) do
     quote do
       unquote(call)
 
@@ -93,13 +93,13 @@ defmodule TypedEctoSchema.SyntaxSugar do
     end
   end
 
-  defp transform_expression({function_name, _, [name, schema, opts, [do: block]]})
+  defp transform_expression({function_name, _, [name, schema, opts, [do: block]]}, _env)
        when function_name in @embeds_function_names do
     quote do
       {schema, opts} =
         unquote(SyntaxSugar).__embeds_module__(
           __ENV__,
-          unquote(schema),
+          unquote(Macro.escape(schema)),
           unquote(opts),
           unquote(Macro.escape(block))
         )
@@ -116,32 +116,51 @@ defmodule TypedEctoSchema.SyntaxSugar do
     end
   end
 
-  defp transform_expression({:timestamps, ctx, []}) do
-    transform_expression({:timestamps, ctx, [[]]})
+  defp transform_expression({:timestamps, ctx, []}, env) do
+    transform_expression({:timestamps, ctx, [[]]}, env)
   end
 
-  defp transform_expression({:::, _, [{function_name, _, [name, ecto_type, opts]}, type]})
+  defp transform_expression({:"::", _, [{function_name, _, [name, ecto_type, opts]}, type]}, env)
        when function_name in @schema_function_names do
     transform_expression(
-      {function_name, [], [name, ecto_type, [{:__typed_ecto_type__, Macro.escape(type)} | opts]]}
+      {function_name, [], [name, ecto_type, [{:__typed_ecto_type__, Macro.escape(type)} | opts]]},
+      env
     )
   end
 
-  defp transform_expression({:::, _, [{function_name, _, [name, ecto_type]}, type]})
+  defp transform_expression({:"::", _, [{function_name, _, [name, ecto_type]}, type]}, env)
        when function_name in @schema_function_names do
     transform_expression(
-      {function_name, [], [name, ecto_type, [__typed_ecto_type__: Macro.escape(type)]]}
+      {function_name, [], [name, ecto_type, [__typed_ecto_type__: Macro.escape(type)]]},
+      env
     )
   end
 
-  defp transform_expression({:::, _, [{:field, _, [name]}, type]}) do
-    transform_expression({:field, [], [name, :string, [__typed_ecto_type__: Macro.escape(type)]]})
+  defp transform_expression({:"::", _, [{:field, _, [name]}, type]}, env) do
+    transform_expression(
+      {:field, [], [name, :string, [__typed_ecto_type__: Macro.escape(type)]]},
+      env
+    )
   end
 
-  defp transform_expression(other), do: other
+  defp transform_expression(unknown, env) do
+    expanded = Macro.expand(unknown, env)
+
+    case expanded do
+      ^unknown ->
+        unknown
+
+      {:__block__, block_context, calls} ->
+        new_calls = Enum.map(calls, &transform_expression(&1, env))
+        {:__block__, block_context, new_calls}
+
+      call ->
+        transform_expression(call, env)
+    end
+  end
 
   @doc false
-  def __embeds_module__(env, name, opts, block) do
+  def __embeds_module__(env, {:__aliases__, _, name}, opts, block) do
     {pk, opts} = Keyword.pop(opts, :primary_key, {:id, :binary_id, autogenerate: true})
 
     block =
@@ -154,7 +173,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
         end
       end
 
-    module = Module.concat(env.module, name)
+    module = Module.concat(env.module,  Module.concat(name))
     Module.create(module, block, env)
     {module, opts}
   end
