@@ -35,6 +35,11 @@ defmodule TypedEctoSchema.SyntaxSugar do
     {:__block__, [], new_calls}
   end
 
+  defp transform_expression({function_name, ctx, [name, schema, [do: block]]}, env)
+       when function_name in @embeds_function_names do
+    transform_expression({function_name, ctx, [name, schema, [], [do: block]]}, env)
+  end
+
   @spec transform_expression(Macro.t(), Macro.Env.t()) :: Macro.t()
   defp transform_expression({function_name, _, [name, type, opts]}, _env)
        when function_name in @schema_function_names do
@@ -173,7 +178,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
         end
       end
 
-    module = Module.concat(env.module,  Module.concat(name))
+    module = Module.concat(env.module, Module.concat(name))
     Module.create(module, block, env)
     {module, opts}
   end

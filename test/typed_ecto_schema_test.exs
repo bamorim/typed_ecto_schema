@@ -571,6 +571,12 @@ defmodule TypedEctoSchemaTest do
 
         def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
       end
+
+      embeds_many(:many2, Many2) do
+        field(:int, :integer) :: non_neg_integer() | nil
+
+        def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+      end
     end
 
     def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
@@ -579,7 +585,10 @@ defmodule TypedEctoSchemaTest do
   test "we can use inline embeds_many" do
     types =
       quote do
-        [many: list(unquote(InlineEmbedsMany.Many).t())]
+        [
+          many: list(unquote(InlineEmbedsMany.Many).t()),
+          many2: list(unquote(InlineEmbedsMany.Many2).t())
+        ]
       end
 
     assert delete_context(InlineEmbedsMany.get_types()) ==
@@ -591,6 +600,9 @@ defmodule TypedEctoSchemaTest do
       end
 
     assert delete_context(InlineEmbedsMany.Many.get_types()) ==
+             delete_context(embed_types)
+
+    assert delete_context(InlineEmbedsMany.Many2.get_types()) ==
              delete_context(embed_types)
   end
 
