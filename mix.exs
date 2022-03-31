@@ -4,8 +4,8 @@ defmodule TypedEctoSchema.MixProject do
   def project do
     [
       app: :typed_ecto_schema,
-      version: "0.3.0",
-      elixir: "~> 1.7",
+      version: "0.4.0",
+      elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -30,7 +30,7 @@ defmodule TypedEctoSchema.MixProject do
   defp deps do
     [
       # Development and test dependencies
-      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.11.1", only: :test, runtime: false},
 
@@ -38,7 +38,7 @@ defmodule TypedEctoSchema.MixProject do
       {:ecto, "~> 3.5"},
 
       # Documentation dependencies
-      {:ex_doc, "~> 0.21", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.28", only: :dev, runtime: false}
     ]
   end
 
