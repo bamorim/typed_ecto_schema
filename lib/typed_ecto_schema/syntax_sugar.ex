@@ -43,7 +43,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
   @spec transform_expression(Macro.t(), Macro.Env.t()) :: Macro.t()
   defp transform_expression({function_name, _, [name, type, opts]}, _env)
        when function_name in @schema_function_names do
-    ecto_opts = Keyword.drop(opts, [:__typed_ecto_type__, :enforce])
+    ecto_opts = Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null])
 
     quote do
       unquote(function_name)(unquote(name), unquote(type), unquote(ecto_opts))
