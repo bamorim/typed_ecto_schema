@@ -399,7 +399,7 @@ defmodule TypedEctoSchemaTest do
   ## Problems
 
   test "the name of a field must be an atom" do
-    assert_raise ArgumentError, "a field name must be an atom, got 3", fn ->
+    assert_raise ArgumentError, "the :source for field `3` must be an atom, got: 3", fn ->
       defmodule InvalidStruct do
         use TypedEctoSchema
 
@@ -412,7 +412,7 @@ defmodule TypedEctoSchemaTest do
 
   test "it is not possible to add twice a field with the same name" do
     assert_raise ArgumentError,
-                 "field/association :name is already set on schema",
+                 "field/association :name already exists on schema, you must either remove the duplication or choose a different name",
                  fn ->
                    defmodule InvalidStruct do
                      use TypedEctoSchema
