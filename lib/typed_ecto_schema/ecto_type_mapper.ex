@@ -3,6 +3,8 @@ defmodule TypedEctoSchema.EctoTypeMapper do
 
   @schema_many_function_name [:embeds_many, :has_many, :many_to_many]
 
+  @schema_belongs_to_assocs [:has_one, :belongs_to]
+
   @schema_assoc_function_name [
     :has_many,
     :has_one,
@@ -192,7 +194,8 @@ defmodule TypedEctoSchema.EctoTypeMapper do
        do: false
 
   defp field_is_nullable?(_default, function_name, _args)
-       when function_name in @schema_assoc_function_name,
+       when function_name in @schema_assoc_function_name and
+              function_name not in @schema_belongs_to_assocs,
        do: true
 
   defp field_is_nullable?(default, _function_name, opts),
