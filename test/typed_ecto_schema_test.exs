@@ -265,7 +265,7 @@ defmodule TypedEctoSchemaTest do
 
         @type t() :: %__MODULE__{
                 __meta__: unquote(Metadata).t(),
-                id: integer() | nil,
+                id: integer(),
                 int: integer() | nil,
                 string: String.t() | nil,
                 non_nullable_string: String.t(),
@@ -331,7 +331,7 @@ defmodule TypedEctoSchemaTest do
       quote do
         [
           __meta__: unquote(Metadata).t(),
-          id: integer() | nil,
+          id: integer(),
           int: integer() | nil,
           string: unquote(String).t() | nil,
           non_nullable_string: unquote(String).t(),
@@ -383,7 +383,7 @@ defmodule TypedEctoSchemaTest do
       quote do
         [
           __meta__: unquote(Metadata).t(),
-          id: integer() | nil,
+          id: integer(),
           has_one0: unquote(Ecto.Schema).has_one(HasOne.t()) | nil,
           has_one1: unquote(Ecto.Schema).has_one(HasOne.t()),
           belongs_to0: unquote(Ecto.Schema).belongs_to(BelongsTo.t()) | nil,
@@ -406,7 +406,7 @@ defmodule TypedEctoSchemaTest do
       quote do
         [
           __meta__: unquote(Metadata).t(),
-          id: binary() | nil,
+          id: binary(),
           normal: unquote(Ecto.Schema).belongs_to(BelongsTo.t()) | nil,
           normal_id: binary() | nil,
           custom_type: unquote(Ecto.Schema).belongs_to(BelongsTo.t()) | nil,
@@ -573,7 +573,7 @@ defmodule TypedEctoSchemaTest do
 
     embed_types =
       quote do
-        [id: binary() | nil, int: non_neg_integer() | nil]
+        [id: binary(), int: non_neg_integer() | nil]
       end
 
     assert delete_context(InlineEmbedsOne.One.get_types()) ==
@@ -638,7 +638,7 @@ defmodule TypedEctoSchemaTest do
 
     embed_types =
       quote do
-        [id: binary() | nil, int: non_neg_integer() | nil]
+        [id: binary(), int: non_neg_integer() | nil]
       end
 
     assert delete_context(InlineEmbedsMany.Many.get_types()) ==
@@ -686,7 +686,7 @@ defmodule TypedEctoSchemaTest do
       quote do
         [
           __meta__: unquote(Metadata).t(),
-          id: integer() | nil,
+          id: integer(),
           many: unquote(Ecto.Schema).has_many(HasMany.t())
         ]
       end

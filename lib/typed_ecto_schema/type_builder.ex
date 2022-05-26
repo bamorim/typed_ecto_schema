@@ -80,7 +80,7 @@ defmodule TypedEctoSchema.TypeBuilder do
   def add_primary_key(module) do
     case Module.get_attribute(module, :primary_key) do
       {name, type, field_opts} ->
-        add_field(module, :field, name, type, field_opts)
+        add_field(module, :field, name, type, Keyword.put(field_opts, :null, false))
         :ok
 
       _ ->
