@@ -113,7 +113,7 @@ defmodule TypedEctoSchemaTest do
     def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
-  defmodule NullBelongsToTypedEctoSchema do
+  defmodule NullAssocTypedEctoSchema do
     use TypedEctoSchema
 
     typed_schema "table" do
@@ -121,6 +121,10 @@ defmodule TypedEctoSchemaTest do
       has_one(:has_one1, HasOne, null: false)
       belongs_to(:belongs_to0, BelongsTo)
       belongs_to(:belongs_to1, BelongsTo, null: false)
+      has_many(:has_many0, HasMany)
+      has_many(:has_many1, HasMany, null: false)
+      many_to_many(:many_to_many0, ManyToMany, join_through: "join_table")
+      many_to_many(:many_to_many1, ManyToMany, join_through: "join_table", null: false)
     end
 
     def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
@@ -385,11 +389,15 @@ defmodule TypedEctoSchemaTest do
           belongs_to0: unquote(Ecto.Schema).belongs_to(BelongsTo.t()) | nil,
           belongs_to0_id: integer() | nil,
           belongs_to1: unquote(Ecto.Schema).belongs_to(BelongsTo.t()),
-          belongs_to1_id: integer()
+          belongs_to1_id: integer(),
+          has_many0: unquote(Ecto.Schema).has_many(HasMany.t()),
+          has_many1: unquote(Ecto.Schema).has_many(HasMany.t()),
+          many_to_many0: unquote(Ecto.Schema).many_to_many(ManyToMany.t()),
+          many_to_many1: unquote(Ecto.Schema).many_to_many(ManyToMany.t())
         ]
       end
 
-    assert delete_context(NullBelongsToTypedEctoSchema.get_types()) ==
+    assert delete_context(NullAssocTypedEctoSchema.get_types()) ==
              delete_context(types)
   end
 
