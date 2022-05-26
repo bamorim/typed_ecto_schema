@@ -12,6 +12,8 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     :many_to_many
   ]
 
+  @schema_many_assoc_function_name [:has_many, :many_to_many]
+
   @module_for_ecto_type %{
     string: String,
     decimal: Decimal,
@@ -194,8 +196,7 @@ defmodule TypedEctoSchema.EctoTypeMapper do
        do: false
 
   defp field_is_nullable?(_default, function_name, _args)
-       when function_name in @schema_assoc_function_name and
-              function_name not in @schema_belongs_to_assocs,
+       when function_name in @schema_many_assoc_function_name,
        do: true
 
   defp field_is_nullable?(default, _function_name, opts),
