@@ -3,8 +3,6 @@ defmodule TypedEctoSchema.EctoTypeMapper do
 
   @schema_many_function_name [:embeds_many, :has_many, :many_to_many]
 
-  @schema_belongs_to_assocs [:has_one, :belongs_to]
-
   @schema_assoc_function_name [
     :has_many,
     :has_one,
