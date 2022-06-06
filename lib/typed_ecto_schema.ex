@@ -99,7 +99,7 @@ defmodule TypedEctoSchema do
 
   ## Type Inference
 
-  TypedEctoSchema does it's best job to guess the typespec for the field. It does so by following
+  TypedEctoSchema does its best job to guess the typespec for the field. It does so by following
   the Elixir types as defined in [`Ecto.Schema`](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types).
   For custom `Ecto.Type` and related schemas (embedded and associations), which are always a
   module, it assumes the schemas has a type `t/0` defined, so for a schema called `MySchema`, it
