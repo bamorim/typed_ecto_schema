@@ -107,6 +107,24 @@ defmodule TypedEctoSchemaTest do
       field(:overriden, :integer, null: true)
       has_one(:has_one, HasOne)
       belongs_to(:belongs_to, BelongsTo)
+      has_many(:has_many, HasMany)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  defmodule NullAssocTypedEctoSchema do
+    use TypedEctoSchema
+
+    typed_schema "table" do
+      has_one(:has_one0, HasOne)
+      has_one(:has_one1, HasOne, null: false)
+      belongs_to(:belongs_to0, BelongsTo)
+      belongs_to(:belongs_to1, BelongsTo, null: false)
+      has_many(:has_many0, HasMany)
+      has_many(:has_many1, HasMany, null: false)
+      many_to_many(:many_to_many0, ManyToMany, join_through: "join_table")
+      many_to_many(:many_to_many1, ManyToMany, join_through: "join_table", null: false)
     end
 
     def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
@@ -349,13 +367,37 @@ defmodule TypedEctoSchemaTest do
           normal: integer(),
           enforced: integer(),
           overriden: integer() | nil,
-          has_one: unquote(Ecto.Schema).has_one(HasOne.t()) | nil,
-          belongs_to: unquote(Ecto.Schema).belongs_to(BelongsTo.t()) | nil,
-          belongs_to_id: integer()
+          has_one: unquote(Ecto.Schema).has_one(HasOne.t()),
+          belongs_to: unquote(Ecto.Schema).belongs_to(BelongsTo.t()),
+          belongs_to_id: integer(),
+          has_many: unquote(Ecto.Schema).has_many(HasMany.t())
         ]
       end
 
     assert delete_context(NotNullTypedEctoSchema.get_types()) ==
+             delete_context(types)
+  end
+
+  test "nulls for belongs to and has one" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          id: integer() | nil,
+          has_one0: unquote(Ecto.Schema).has_one(HasOne.t()) | nil,
+          has_one1: unquote(Ecto.Schema).has_one(HasOne.t()),
+          belongs_to0: unquote(Ecto.Schema).belongs_to(BelongsTo.t()) | nil,
+          belongs_to0_id: integer() | nil,
+          belongs_to1: unquote(Ecto.Schema).belongs_to(BelongsTo.t()),
+          belongs_to1_id: integer(),
+          has_many0: unquote(Ecto.Schema).has_many(HasMany.t()),
+          has_many1: unquote(Ecto.Schema).has_many(HasMany.t()),
+          many_to_many0: unquote(Ecto.Schema).many_to_many(ManyToMany.t()),
+          many_to_many1: unquote(Ecto.Schema).many_to_many(ManyToMany.t())
+        ]
+      end
+
+    assert delete_context(NullAssocTypedEctoSchema.get_types()) ==
              delete_context(types)
   end
 
