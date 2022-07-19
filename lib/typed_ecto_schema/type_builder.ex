@@ -65,14 +65,26 @@ defmodule TypedEctoSchema.TypeBuilder do
   end
 
   defmacro __define_type__(types, schema_opts) do
-    if Keyword.get(schema_opts, :opaque, false) do
-      quote bind_quoted: [types: types] do
-        @opaque t() :: %__MODULE__{unquote_splicing(types)}
-      end
-    else
-      quote bind_quoted: [types: types] do
-        @type t() :: %__MODULE__{unquote_splicing(types)}
-      end
+    with_typecheck = TypeCheck.Macros in __CALLER__.requires
+    is_opaque = Keyword.get(schema_opts, :opaque, false)
+
+    case {with_typecheck, is_opaque} do
+      {true, true} ->
+        quote bind_quoted: [types: types] do
+          TypeCheck.Macros.opaque!(t() :: %__MODULE__{unquote_splicing(types)})
+        end
+      {true, false} ->
+        quote bind_quoted: [types: types] do
+          TypeCheck.Macros.type!(t() :: %__MODULE__{unquote_splicing(types)})
+        end
+      {false, true} ->
+        quote bind_quoted: [types: types] do
+          @opaque t() :: %__MODULE__{unquote_splicing(types)}
+        end
+      {false, false} ->
+        quote bind_quoted: [types: types] do
+          @type t() :: %__MODULE__{unquote_splicing(types)}
+        end
     end
   end
 

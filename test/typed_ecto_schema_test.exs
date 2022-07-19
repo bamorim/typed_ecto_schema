@@ -74,6 +74,8 @@ defmodule TypedEctoSchemaTest do
       def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
     end
 
+  @bytecode bytecode
+
   {:module, _name, bytecode_opaque, _exports} =
     defmodule OpaqueTestStruct do
       use TypedEctoSchema
@@ -83,6 +85,8 @@ defmodule TypedEctoSchemaTest do
         field(:int, :integer)
       end
     end
+
+  @bytecode_opaque bytecode_opaque
 
   defmodule EnforcedTypedEctoSchema do
     use TypedEctoSchema
@@ -158,8 +162,15 @@ defmodule TypedEctoSchemaTest do
     def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
-  @bytecode bytecode
-  @bytecode_opaque bytecode_opaque
+  defmodule InteropWithTypecheck do
+    use TypeCheck
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_embedded_schema do
+      field(:int, :integer)
+    end
+  end
 
   # Standard struct name used when comparing generated types.
   @standard_struct_name TypedEctoSchemaTest.TestStruct
@@ -725,6 +736,11 @@ defmodule TypedEctoSchemaTest do
     assert %Ecto.Changeset{} =
              Ecto.Changeset.change(%InlineEmbedsOne{})
              |> Ecto.Changeset.put_embed(:one, %{int: 123})
+  end
+
+  test "integrates with TypeCheck if and only if TypeCheck is required" do
+    assert %TypeCheck.Builtin.NamedType{} = InteropWithTypecheck.t()
+    refute function_exported?(Embedded, :t, 0)
   end
 
   ##

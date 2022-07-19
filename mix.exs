@@ -36,6 +36,7 @@ defmodule TypedEctoSchema.MixProject do
 
       # Project dependencies
       {:ecto, "~> 3.5"},
+      {:type_check, "~> 0.12", optional: true},
 
       # Documentation dependencies
       {:ex_doc, "~> 0.28", only: :dev, runtime: false}
