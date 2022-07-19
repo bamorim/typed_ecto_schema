@@ -15,20 +15,16 @@ jobs:
         elixir-version:
           - 1.11.4
           - 1.12.3
-          - 1.13.3
+          - 1.13.4
         otp-version:
           - 22.3
           - 23.3
-          - 24.0
+          - 24.3
         include:
-          - elixir-version: 1.9.4
-            otp-version: 21.3
-          - elixir-version: 1.9.4
-            otp-version: 22.3
           - elixir-version: 1.10.4
             otp-version: 22.3
           - elixir-version: 1.10.4
-            otp-version: 24.0
+            otp-version: 23.3
     env:
       MIX_ENV: test
     steps:
