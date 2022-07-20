@@ -65,7 +65,8 @@ defmodule TypedEctoSchema.TypeBuilder do
   end
 
   defmacro __define_type__(types, schema_opts) do
-    use_typecheck? = TypeCheck.Macros in __CALLER__.requires
+    typecheck_required? = TypeCheck.Macros in __CALLER__.requires
+    use_typecheck? = typecheck_required? and typecheck_enabled?(schema_opts)
     opaque? = Keyword.get(schema_opts, :opaque, false)
 
     case {use_typecheck?, opaque?} do
@@ -180,5 +181,10 @@ defmodule TypedEctoSchema.TypeBuilder do
       :enforce,
       schema_opts[:enforce] && is_nil(field_opts[:default])
     )
+  end
+
+  defp typecheck_enabled?(schema_opts) do
+    config = Application.get_env(:typed_ecto_schema, :type_check, false)
+    Keyword.get(schema_opts, :type_check, config)
   end
 end

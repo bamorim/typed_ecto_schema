@@ -167,7 +167,7 @@ defmodule TypedEctoSchemaTest do
     use TypedEctoSchema
 
     @primary_key false
-    typed_embedded_schema do
+    typed_embedded_schema type_check: true do
       field(:int, :integer)
     end
   end
