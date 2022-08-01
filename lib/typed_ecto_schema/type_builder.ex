@@ -74,14 +74,17 @@ defmodule TypedEctoSchema.TypeBuilder do
         quote bind_quoted: [types: types] do
           TypeCheck.Macros.opaque!(t() :: %__MODULE__{unquote_splicing(types)})
         end
+
       {true, false} ->
         quote bind_quoted: [types: types] do
           TypeCheck.Macros.type!(t() :: %__MODULE__{unquote_splicing(types)})
         end
+
       {false, true} ->
         quote bind_quoted: [types: types] do
           @opaque t() :: %__MODULE__{unquote_splicing(types)}
         end
+
       {false, false} ->
         quote bind_quoted: [types: types] do
           @type t() :: %__MODULE__{unquote_splicing(types)}
