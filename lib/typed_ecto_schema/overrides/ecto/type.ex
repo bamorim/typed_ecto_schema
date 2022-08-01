@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Ecto.Type do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
 
     @typep! private_composite() ::

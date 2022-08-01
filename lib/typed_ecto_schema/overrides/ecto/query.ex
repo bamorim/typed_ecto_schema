@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Ecto.Query do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
 
     @opaque! dynamic() :: %Ecto.Query.DynamicExpr{

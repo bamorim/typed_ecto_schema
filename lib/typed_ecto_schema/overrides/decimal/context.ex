@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Decimal.Context do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
 
     @type! t() :: %Decimal.Context{

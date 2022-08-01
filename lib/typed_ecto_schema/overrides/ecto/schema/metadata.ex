@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Ecto.Schema.Metadata do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
     @type! t() :: lazy(t(module()))
     @type! t(schema) :: %Ecto.Schema.Metadata{

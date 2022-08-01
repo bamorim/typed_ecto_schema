@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Ecto.Association.NotLoaded do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
 
     @type! t() :: %Ecto.Association.NotLoaded{

@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Ecto.Schema do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
     @type! embeds_many(t) :: [t]
     @type! embeds_one(t) :: t

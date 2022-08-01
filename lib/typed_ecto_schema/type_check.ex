@@ -1,5 +1,35 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.TypeCheck do
+    @moduledoc """
+    If you use TypeCheck, you can use this module to enable our default overrides.
+
+    You can either use this module directly
+
+        defmodule MySchema do
+          use TypedEctoSchema.TypeCheck
+          use TypedEctoSchema
+
+          typed_schema "source" do
+            field(:int, :integer)
+          end
+        end
+
+    Or you can use `TypedEctoSchema.TypeCheck.overrides/0` instead
+
+        defmodule MySchema do
+          use TypeCheck, overrides: TypedEctoSchema.TypeCheck.overrides()
+          use TypedEctoSchema
+
+          typed_schema "source" do
+            field(:int, :integer)
+          end
+        end
+
+    This is useful if you also have your own overrides you want to mix in.
+
+    Consider also creating your own `MyApp.TypeCheck` to simplify using it.
+    """
+
     @overrides [
       {{Ecto.Adapter.Transaction, :adapter_meta, 0},
        {TypedEctoSchema.Overrides.Ecto.Adapter.Transaction, :adapter_meta, 0}},

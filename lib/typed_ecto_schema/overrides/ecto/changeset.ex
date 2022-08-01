@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Ecto.Changeset do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
     @type! types() :: map()
     @type! data() :: map()

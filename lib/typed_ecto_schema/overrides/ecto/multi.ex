@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Ecto.Multi do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
     @typep! names() :: MapSet.t()
     @typep! operations() :: [{lazy(name()), lazy(operation())}]

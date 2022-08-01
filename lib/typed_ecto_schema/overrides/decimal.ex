@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Decimal do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
     @type! decimal() :: lazy(t()) | integer() | String.t()
     @type! t() :: %Decimal{coef: lazy(coefficient()), exp: lazy(exponent()), sign: lazy(sign())}

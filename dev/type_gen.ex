@@ -21,9 +21,12 @@ defmodule TypedEctoSchema.TypeCheckGen do
   def generate_typecheck_module(modules_to_override, typecheck_module) do
     overrides = List.flatten(for {source, target} <- modules_to_override, do: overrides_for(source, target))
 
-    quote do
+    code =
+      quote do
       if Code.ensure_loaded?(TypeCheck) do
         defmodule unquote(typecheck_module) do
+          @moduledoc :REPLACE_WITH_DOCS
+
           @overrides unquote(Macro.escape(overrides))
 
           defmacro __using__(opts) do
@@ -38,6 +41,41 @@ defmodule TypedEctoSchema.TypeCheckGen do
         end
       end
     end
+    |> Macro.to_string()
+
+    new_doc = ~S[
+    """
+    If you use TypeCheck, you can use this module to enable our default overrides.
+
+    You can either use this module directly
+
+        defmodule MySchema do
+          use TypedEctoSchema.TypeCheck
+          use TypedEctoSchema
+
+          typed_schema "source" do
+            field(:int, :integer)
+          end
+        end
+
+    Or you can use `TypedEctoSchema.TypeCheck.overrides/0` instead
+
+        defmodule MySchema do
+          use TypeCheck, overrides: TypedEctoSchema.TypeCheck.overrides()
+          use TypedEctoSchema
+
+          typed_schema "source" do
+            field(:int, :integer)
+          end
+        end
+
+    This is useful if you also have your own overrides you want to mix in.
+
+    Consider also creating your own `MyApp.TypeCheck` to simplify using it.
+    """
+    ]
+
+    String.replace(code, ":REPLACE_WITH_DOCS", "#{String.trim(new_doc)}\n")
   end
 
   defp overrides_for(source, target) do
@@ -63,6 +101,8 @@ defmodule TypedEctoSchema.TypeCheckGen do
     quote do
       if Code.ensure_loaded?(TypeCheck) do
         defmodule unquote(target) do
+          @moduledoc false
+
           use unquote(typecheck_module)
 
           unquote_splicing(overrides)

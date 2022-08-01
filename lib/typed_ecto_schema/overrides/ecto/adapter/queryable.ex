@@ -1,5 +1,6 @@
 if Code.ensure_loaded?(TypeCheck) do
   defmodule TypedEctoSchema.Overrides.Ecto.Adapter.Queryable do
+    @moduledoc false
     use TypedEctoSchema.TypeCheck
     @type! selected() :: term()
     @type! options() :: Keyword.t()
