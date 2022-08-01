@@ -162,12 +162,22 @@ defmodule TypedEctoSchemaTest do
     def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
-  defmodule InteropWithTypecheck do
-    use TypeCheck
+  defmodule EmbeddedSchemaWithTypecheck do
+    use TypeCheck, overrides: TypedEctoSchema.TypeCheck.overrides()
     use TypedEctoSchema
 
     @primary_key false
     typed_embedded_schema type_check: true do
+      field(:int, :integer)
+    end
+  end
+
+  defmodule SchemaWithTypecheck do
+    use TypeCheck, overrides: TypedEctoSchema.TypeCheck.overrides()
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_schema "source", type_check: true do
       field(:int, :integer)
     end
   end
@@ -739,7 +749,8 @@ defmodule TypedEctoSchemaTest do
   end
 
   test "integrates with TypeCheck if and only if TypeCheck is required" do
-    assert %TypeCheck.Builtin.NamedType{} = InteropWithTypecheck.t()
+    assert %TypeCheck.Builtin.NamedType{} = EmbeddedSchemaWithTypecheck.t()
+    assert %TypeCheck.Builtin.NamedType{} = SchemaWithTypecheck.t()
     refute function_exported?(Embedded, :t, 0)
   end
 
