@@ -7,10 +7,10 @@ if Code.ensure_loaded?(TypeCheck) do
     @type! cached() :: term()
     @type! prepared() :: term()
     @type! query_cache() ::
-             {:nocache, lazy(prepared())}
-             | {:cache, cache_function :: (cached() -> :ok), lazy(prepared())}
+             {:nocache, prepared()}
+             | {:cache, cache_function :: (cached() -> :ok), prepared()}
              | {:cached, update_function :: (cached() -> :ok),
-                reset_function :: (prepared() -> :ok), lazy(cached())}
+                reset_function :: (prepared() -> :ok), cached()}
     @type! query_meta() :: %{sources: tuple(), preloads: term(), select: map()}
     @type! adapter_meta() :: Ecto.Adapter.adapter_meta()
   end

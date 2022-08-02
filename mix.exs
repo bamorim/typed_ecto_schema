@@ -12,7 +12,8 @@ defmodule TypedEctoSchema.MixProject do
       package: package(),
       docs: docs(),
       description:
-        "A library to define Ecto schemas with typespecs without all the boilerplate code."
+        "A library to define Ecto schemas with typespecs without all the boilerplate code.",
+      dialyzer: [plt_add_apps: [:mix, :type_check]]
     ]
   end
 

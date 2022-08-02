@@ -5,7 +5,7 @@ if Code.ensure_loaded?(TypeCheck) do
 
     @typep! private_composite() ::
               {:maybe, lazy(t())} | {:in, lazy(t())} | {:param, :any_datetime}
-    @type! composite() :: {:array, lazy(t())} | {:map, lazy(t())} | lazy(private_composite())
+    @type! composite() :: {:array, lazy(t())} | {:map, lazy(t())} | private_composite()
     @type! base() ::
              :integer
              | :float
@@ -25,7 +25,7 @@ if Code.ensure_loaded?(TypeCheck) do
              | :naive_datetime_usec
              | :time_usec
     @type! custom() :: module() | {:parameterized, module(), term()}
-    @type! primitive() :: lazy(base()) | lazy(composite())
-    @type! t() :: lazy(primitive()) | lazy(custom())
+    @type! primitive() :: base() | composite()
+    @type! t() :: primitive() | custom()
   end
 end

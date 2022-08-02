@@ -14,14 +14,14 @@ if Code.ensure_loaded?(TypeCheck) do
            }
     @type! action() :: nil | :insert | :update | :delete | :replace | :ignore | atom()
     @type! error() :: {String.t(), Keyword.t()}
-    @type! t() :: lazy(t(Ecto.Schema.t() | map() | nil))
+    @type! t() :: t(Ecto.Schema.t() | map() | nil)
     @type! t(data_type) :: %Ecto.Changeset{
-             action: lazy(action()),
+             action: action(),
              changes: %{optional(atom()) => term()},
-             constraints: [lazy(constraint())],
+             constraints: [constraint()],
              data: data_type,
              empty_values: term(),
-             errors: [{atom(), lazy(error())}],
+             errors: [{atom(), error()}],
              filters: %{optional(atom()) => term()},
              params: %{optional(String.t()) => term()} | nil,
              prepare: [(lazy(t()) -> lazy(t()))],
