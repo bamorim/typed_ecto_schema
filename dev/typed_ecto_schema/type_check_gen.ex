@@ -1,10 +1,10 @@
 defmodule TypedEctoSchema.TypeCheckGen do
   def generate(prefix \\ TypedEctoSchema.Overrides, typecheck_module \\ TypedEctoSchema.TypeCheck) do
-    load_modules_starting_with!(["Elixir.Ecto", "Elixir.Decimal"])
-
     modules_to_override =
-      for {module, _} <- :code.all_loaded(),
-          from_libs?(module, [:ecto, :decimal]),
+      for app <- [:ecto, :decimal],
+          {:ok, modules} = :application.get_key(app, :modules),
+          module <- modules,
+          Code.ensure_loaded?(module),
           def_types?(module),
           do: {module, Module.concat(prefix, module)}
 
@@ -21,7 +21,9 @@ defmodule TypedEctoSchema.TypeCheckGen do
 
   def generate_typecheck_module(modules_to_override, typecheck_module) do
     overrides =
-      List.flatten(for {source, target} <- modules_to_override, do: overrides_for(source, target))
+      modules_to_override
+      |> Enum.flat_map(fn {source, target} -> overrides_for(source, target) end)
+      |> Enum.sort()
 
     code =
       quote do
@@ -150,37 +152,12 @@ defmodule TypedEctoSchema.TypeCheckGen do
     result
   end
 
-  defp load_modules_starting_with!(prefixes) do
-    for {module_name, _, _} <- :code.all_available() do
-      module_name = to_string(module_name)
-
-      if Enum.any?(prefixes, &String.starts_with?(module_name, &1)) do
-        Code.ensure_loaded(String.to_atom(module_name))
-      end
-    end
-  end
-
-  defp from_libs?(module, libs) do
-    lib_sources = Enum.map(libs, &Mix.Project.deps_paths()[&1])
-
-    try do
-      source = module.__info__(:compile)[:source]
-      Enum.any?(lib_sources, &child_path?(&1, source))
-    rescue
-      _ -> false
-    end
-  end
-
   defp def_types?(module) do
     try do
       match?({:ok, [_ | _]}, Code.Typespec.fetch_types(module))
     rescue
       _ -> false
     end
-  end
-
-  defp child_path?(parent, child) do
-    List.starts_with?(Path.split(child), Path.split(parent))
   end
 
   def find_references(refs, {type, _line, name, args}) do

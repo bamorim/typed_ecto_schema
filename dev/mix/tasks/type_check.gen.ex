@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Override.Gen do
+defmodule Mix.Tasks.TypeCheck.Gen do
   @moduledoc """
   Automatically generates TypeCheck override modules from a particular
   dependency and puts them in the appropriate place
@@ -12,5 +12,7 @@ defmodule Mix.Tasks.Override.Gen do
   @impl Mix.Task
   def run(_args) do
     TypedEctoSchema.TypeCheckGen.generate()
+    IO.puts("Formatting...")
+    Mix.Task.run("format")
   end
 end
