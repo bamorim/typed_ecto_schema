@@ -149,8 +149,20 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     end
   end
 
+  defp disjunction_typespec([{atom, int}]) when is_atom(atom) and is_integer(int) do
+    quote do
+      unquote(atom)
+    end
+  end
+
+  defp disjunction_typespec([{atom, int} | tail]) when is_atom(atom) and is_integer(int) do
+    quote do
+      unquote(atom) | unquote(disjunction_typespec(tail))
+    end
+  end
+
   # Fallback for `Ecto.Enum` with ill-defined `:values`
-  defp disjunction_typespec(_) do
+  defp disjunction_typespec(_any) do
     quote do
       any()
     end

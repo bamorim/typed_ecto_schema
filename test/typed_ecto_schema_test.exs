@@ -59,6 +59,7 @@ defmodule TypedEctoSchemaTest do
         field(:enum_type1, Ecto.Enum, values: [:foo1])
         field(:enum_type2, Ecto.Enum, values: [:foo1, :foo2])
         field(:enum_type3, Ecto.Enum, values: [:foo1, :foo2, :foo3])
+        field(:enum_type_with_ints, Ecto.Enum, values: [foo1: 0, foo2: 1, foo3: 2])
         field(:enum_type_required, Ecto.Enum, values: [:foo1, :foo2, :foo3], null: false)
         embeds_one(:embed, Embedded)
         embeds_many(:embeds, Embedded)
@@ -178,6 +179,7 @@ defmodule TypedEctoSchemaTest do
              :enum_type1,
              :enum_type2,
              :enum_type3,
+             :enum_type_with_ints,
              :enum_type_required,
              :embed,
              :embeds,
@@ -253,6 +255,7 @@ defmodule TypedEctoSchemaTest do
           field(:enum_type1, Ecto.Enum, values: [:foo1])
           field(:enum_type2, Ecto.Enum, values: [:foo1, :foo2])
           field(:enum_type3, Ecto.Enum, values: [:foo1, :foo2, :foo3])
+          field(:enum_type_with_ints, Ecto.Enum, values: [foo1: 0, foo2: 1, foo3: 2])
           field(:enum_type_required, Ecto.Enum, values: [:foo1, :foo2, :foo3], null: false)
           embeds_one(:embed, Embedded)
           embeds_many(:embeds, Embedded)
@@ -275,6 +278,7 @@ defmodule TypedEctoSchemaTest do
                 enum_type1: :foo1 | nil,
                 enum_type2: (:foo1 | :foo2) | nil,
                 enum_type3: (:foo1 | :foo2 | :foo3) | nil,
+                enum_type_with_ints: (:foo1 | :foo2 | :foo3) | nil,
                 enum_type_required: :foo1 | :foo2 | :foo3,
                 embed: Embedded.t() | nil,
                 embeds: list(Embedded.t()),
@@ -341,6 +345,7 @@ defmodule TypedEctoSchemaTest do
           enum_type1: :foo1 | nil,
           enum_type2: (:foo1 | :foo2) | nil,
           enum_type3: (:foo1 | :foo2 | :foo3) | nil,
+          enum_type_with_ints: (:foo1 | :foo2 | :foo3) | nil,
           enum_type_required: :foo1 | :foo2 | :foo3,
           embed: Embedded.t() | nil,
           embeds: list(Embedded.t()),
