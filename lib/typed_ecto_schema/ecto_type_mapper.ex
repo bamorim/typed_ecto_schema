@@ -132,25 +132,44 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   ## Type Transformation Helpers
   ##
 
-  @spec disjunction_typespec(list(atom())) :: Macro.t()
-  defp disjunction_typespec([sole_item]) when is_atom(sole_item) do
-    sole_item
-  end
+  @spec disjunction_typespec(list(atom()) | list({atom(), integer()})) :: Macro.t()
+  defp disjunction_typespec([entry | _rest] = all) do
+    case entry do
+      atom when is_atom(atom) ->
+        disjunction_typespec(all, :atom)
 
-  defp disjunction_typespec([first, last]) when is_atom(first) and is_atom(last) do
-    quote do
-      unquote(first) | unquote(last)
+      {atom, int} when is_atom(atom) and is_integer(int) ->
+        disjunction_typespec(all, :keyed_int)
+
+      _ ->
+        disjunction_typespec(all, nil)
     end
   end
 
-  defp disjunction_typespec([head | tail]) when is_atom(head) do
+  defp disjunction_typespec([{atom, value}], :keyed_int)
+       when is_atom(atom) and is_integer(value) do
+    atom
+  end
+
+  defp disjunction_typespec([{atom, value} | tail], :keyed_int)
+       when is_atom(atom) and is_integer(value) do
     quote do
-      unquote(head) | unquote(disjunction_typespec(tail))
+      unquote(atom) | unquote(disjunction_typespec(tail, :keyed_int))
     end
   end
 
-  # Fallback for `Ecto.Enum` with ill-defined `:values`
-  defp disjunction_typespec(_) do
+  defp disjunction_typespec([atom], :atom) when is_atom(atom) do
+    atom
+  end
+
+  defp disjunction_typespec([head | tail], :atom) when is_atom(head) do
+    quote do
+      unquote(head) | unquote(disjunction_typespec(tail, :atom))
+    end
+  end
+
+  # Fallback for `Ecto.Enum` with ill-defined `:values`, eg. [:foo1, {foo2: 2}]
+  defp disjunction_typespec(_, _) do
     quote do
       any()
     end
