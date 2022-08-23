@@ -65,14 +65,30 @@ defmodule TypedEctoSchema.TypeBuilder do
   end
 
   defmacro __define_type__(types, schema_opts) do
-    if Keyword.get(schema_opts, :opaque, false) do
-      quote bind_quoted: [types: types] do
-        @opaque t() :: %__MODULE__{unquote_splicing(types)}
-      end
-    else
-      quote bind_quoted: [types: types] do
-        @type t() :: %__MODULE__{unquote_splicing(types)}
-      end
+    typecheck_required? = TypeCheck.Macros in __CALLER__.requires
+    use_typecheck? = typecheck_required? and typecheck_enabled?(schema_opts)
+    opaque? = Keyword.get(schema_opts, :opaque, false)
+
+    case {use_typecheck?, opaque?} do
+      {true, true} ->
+        quote bind_quoted: [types: types] do
+          TypeCheck.Macros.opaque!(t() :: %__MODULE__{unquote_splicing(types)})
+        end
+
+      {true, false} ->
+        quote bind_quoted: [types: types] do
+          TypeCheck.Macros.type!(t() :: %__MODULE__{unquote_splicing(types)})
+        end
+
+      {false, true} ->
+        quote bind_quoted: [types: types] do
+          @opaque t() :: %__MODULE__{unquote_splicing(types)}
+        end
+
+      {false, false} ->
+        quote bind_quoted: [types: types] do
+          @type t() :: %__MODULE__{unquote_splicing(types)}
+        end
     end
   end
 
@@ -168,5 +184,10 @@ defmodule TypedEctoSchema.TypeBuilder do
       :enforce,
       schema_opts[:enforce] && is_nil(field_opts[:default])
     )
+  end
+
+  defp typecheck_enabled?(schema_opts) do
+    config = Application.get_env(:typed_ecto_schema, :type_check, false)
+    Keyword.get(schema_opts, :type_check, config)
   end
 end

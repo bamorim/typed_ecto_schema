@@ -96,6 +96,32 @@ defmodule TypedEctoSchema do
     defines a default (`default: value`), since it makes no sense to have a default value for an
     enforced field.
   - `:opaque` - When `true` makes the generated type `t` be an opaque type.
+  - `:type_check` - Enable [experimental integration with
+    TypeCheck](#module-typecheck-integration-experimental)
+
+  ## TypeCheck Integration (Experimental)
+
+  We are currently experimenting with a [TypeCheck](https://hexdocs.pm/type_check/) integration,
+  but because it might break, we are making it opt-in. You can either specify on the
+  [schema options](#module-schema-options) or globally using config:
+
+      config :typed_ecto_schema, type_check: true
+
+  What this integration enables is that by doing
+
+      defmodule InteropWithTypeCheck do
+        use TypedEctoSchema
+        use TypeCheck
+
+        typed_embedded_schema type_check: true do
+          field(:year, :number)
+        end
+      end
+
+  You then should be able to
+
+      iex> InteropWithTypeCheck.t()
+      #TypeCheck.Type< InteropWithTypeCheck.t() :: %InteropWithTypeCheck{id: binary() | nil, year: integer() | nil} >
 
   ## Type Inference
 

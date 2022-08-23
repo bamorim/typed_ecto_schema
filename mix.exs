@@ -12,7 +12,8 @@ defmodule TypedEctoSchema.MixProject do
       package: package(),
       docs: docs(),
       description:
-        "A library to define Ecto schemas with typespecs without all the boilerplate code."
+        "A library to define Ecto schemas with typespecs without all the boilerplate code.",
+      dialyzer: [plt_add_apps: [:mix, :type_check]]
     ]
   end
 
@@ -23,7 +24,8 @@ defmodule TypedEctoSchema.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["lib", "dev", "test/support"]
+  defp elixirc_paths(:dev), do: ["lib", "dev"]
   defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help deps" to learn about dependencies.
@@ -36,6 +38,7 @@ defmodule TypedEctoSchema.MixProject do
 
       # Project dependencies
       {:ecto, "~> 3.5"},
+      {:type_check, "~> 0.12", optional: true},
 
       # Documentation dependencies
       {:ex_doc, "~> 0.28", only: :dev, runtime: false}
