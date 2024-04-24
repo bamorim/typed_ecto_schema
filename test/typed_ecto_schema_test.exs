@@ -748,9 +748,6 @@ defmodule TypedEctoSchemaTest do
   # standard struct name).
   defp standardise(type_info, struct \\ @standard_struct_name)
 
-  defp standardise({name, type, params}, struct) when is_tuple(type),
-    do: {name, standardise(type, struct), params}
-
   defp standardise({:type, _, type, params}, struct),
     do: {:type, :line, type, standardise(params, struct)}
 
@@ -759,6 +756,9 @@ defmodule TypedEctoSchemaTest do
 
   defp standardise({:atom, _, struct}, struct),
     do: {:atom, :line, @standard_struct_name}
+
+  defp standardise({name, type, params}, struct) when is_tuple(type),
+    do: {name, standardise(type, struct), params}
 
   defp standardise({type, _, litteral}, _struct),
     do: {type, :line, litteral}
