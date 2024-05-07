@@ -732,6 +732,143 @@ defmodule TypedEctoSchemaTest do
              |> Ecto.Changeset.put_embed(:one, %{int: 123})
   end
 
+  test "SyntaxSugar.apply_to_block/2 work with expanded nested AST" do
+    block =
+      {:__block__, [],
+       [
+         {:field, [line: 2], [:name, :string]},
+         {:field, [line: 3], [:age, :integer]},
+         {:__block__, [],
+          [{:field, [], [:embed_flag, :boolean]}, {:field, [], [:embed_name, :string]}]}
+       ]}
+
+    result = TypedEctoSchema.SyntaxSugar.apply_to_block(block, :env)
+
+    assert {
+             :__block__,
+             [],
+             [
+               {:__block__, [],
+                [
+                  {:field, [], [:name, :string]},
+                  {{:., [], [TypedEctoSchema.TypeBuilder, :add_field]}, [],
+                   [{:__MODULE__, [], TypedEctoSchema.SyntaxSugar}, :field, :name, :string, []]}
+                ]},
+               {:__block__, [],
+                [
+                  {:field, [], [:age, :integer]},
+                  {{:., [], [TypedEctoSchema.TypeBuilder, :add_field]}, [],
+                   [{:__MODULE__, [], TypedEctoSchema.SyntaxSugar}, :field, :age, :integer, []]}
+                ]},
+               {:__block__, [],
+                [
+                  {:__block__, [],
+                   [
+                     {:field, [], [:embed_flag, :boolean]},
+                     {{:., [], [TypedEctoSchema.TypeBuilder, :add_field]}, [],
+                      [
+                        {:__MODULE__, [], TypedEctoSchema.SyntaxSugar},
+                        :field,
+                        :embed_flag,
+                        :boolean,
+                        []
+                      ]}
+                   ]},
+                  {:__block__, [],
+                   [
+                     {:field, [], [:embed_name, :string]},
+                     {{:., [], [TypedEctoSchema.TypeBuilder, :add_field]}, [],
+                      [
+                        {:__MODULE__, [], TypedEctoSchema.SyntaxSugar},
+                        :field,
+                        :embed_name,
+                        :string,
+                        []
+                      ]}
+                   ]}
+                ]}
+             ]
+           } == result
+  end
+
+  defmodule Custom.Schema do
+    @schema_function_names [
+      :field,
+      :embeds_one,
+      :embeds_many,
+      :belongs_to
+    ]
+
+    defmacro __using__(_opts) do
+      quote do
+        use TypedEctoSchema
+        import TypedEctoSchema, except: [typed_schema: 2]
+        import unquote(__MODULE__), only: [typed_schema: 2]
+      end
+    end
+
+    defmacro typed_schema(name, do: {function_name, ctx, args}) do
+      fields = {function_name, ctx, Enum.map(args, &put_null_false/1)}
+
+      quote do
+        TypedEctoSchema.typed_schema unquote(name) do
+          unquote(fields)
+        end
+      end
+    end
+
+    defp put_null_false({function_name, ctx, args})
+         when function_name in @schema_function_names do
+      {name, type, opts} =
+        case args do
+          [name, type] -> {name, type, []}
+          [name, type, opts] -> {name, type, opts}
+        end
+
+      {function_name, ctx, [name, type, Keyword.put_new(opts, :null, false)]}
+    end
+
+    defp put_null_false({:__block__, ctx, args}) do
+      {:__block__, ctx, Enum.map(args, &put_null_false/1)}
+    end
+
+    defp put_null_false(ast), do: ast
+  end
+
+  defmodule CustomMacroSchema do
+    use Custom.Schema
+
+    typed_schema "custom_macro_schemas" do
+      field(:name, :string)
+      field(:age, :integer)
+
+      (
+        field(:foo, :string)
+        field(:bar, :integer)
+      )
+    end
+  end
+
+  test "pre macro passed schema" do
+    require IEx.Helpers
+
+    assert CustomMacroSchema.__schema__(:fields) == [
+             :id,
+             :name,
+             :age,
+             :foo,
+             :bar
+           ]
+
+    assert CustomMacroSchema.__struct__() == %CustomMacroSchema{
+             id: nil,
+             name: nil,
+             age: nil,
+             foo: nil,
+             bar: nil
+           }
+  end
+
   ##
   ## Helpers
   ##
