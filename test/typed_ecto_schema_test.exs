@@ -732,6 +732,65 @@ defmodule TypedEctoSchemaTest do
              |> Ecto.Changeset.put_embed(:one, %{int: 123})
   end
 
+  test "SyntaxSugar.apply_to_block/2 work with expanded nested AST" do
+    block =
+      {:__block__, [],
+       [
+         {:field, [line: 2], [:name, :string]},
+         {:field, [line: 3], [:age, :integer]},
+         {:__block__, [],
+          [{:field, [], [:embed_flag, :boolean]}, {:field, [], [:embed_name, :string]}]}
+       ]}
+
+    result = TypedEctoSchema.SyntaxSugar.apply_to_block(block, :env)
+
+    assert {
+             :__block__,
+             [],
+             [
+               {:__block__, [],
+                [
+                  {:field, [], [:name, :string]},
+                  {{:., [], [TypedEctoSchema.TypeBuilder, :add_field]}, [],
+                   [{:__MODULE__, [], TypedEctoSchema.SyntaxSugar}, :field, :name, :string, []]}
+                ]},
+               {:__block__, [],
+                [
+                  {:field, [], [:age, :integer]},
+                  {{:., [], [TypedEctoSchema.TypeBuilder, :add_field]}, [],
+                   [{:__MODULE__, [], TypedEctoSchema.SyntaxSugar}, :field, :age, :integer, []]}
+                ]},
+               {:__block__, [],
+                [
+                  {:__block__, [],
+                   [
+                     {:field, [], [:embed_flag, :boolean]},
+                     {{:., [], [TypedEctoSchema.TypeBuilder, :add_field]}, [],
+                      [
+                        {:__MODULE__, [], TypedEctoSchema.SyntaxSugar},
+                        :field,
+                        :embed_flag,
+                        :boolean,
+                        []
+                      ]}
+                   ]},
+                  {:__block__, [],
+                   [
+                     {:field, [], [:embed_name, :string]},
+                     {{:., [], [TypedEctoSchema.TypeBuilder, :add_field]}, [],
+                      [
+                        {:__MODULE__, [], TypedEctoSchema.SyntaxSugar},
+                        :field,
+                        :embed_name,
+                        :string,
+                        []
+                      ]}
+                   ]}
+                ]}
+             ]
+           } == result
+  end
+
   ##
   ## Helpers
   ##
