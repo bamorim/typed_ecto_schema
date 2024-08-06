@@ -37,6 +37,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.otp-version }}-${{ matrix.elixir-version }}-mix-
       - run: mix deps.get
-      - run: mix test
+      - name: Run Tests With Coverage Report
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ matrix.otp-version == '26.2.4' && matrix.elixir-version == '1.16.2' }}
+        run: mix coveralls.github
+      - name: Run Tests
+        if: ${{ !(matrix.otp-version == '26.2.4' && matrix.elixir-version == '1.16.2') }}
+        run: mix test
       - run: mix dialyzer --halt-exit-status
       - run: mix credo --strict
