@@ -15,11 +15,19 @@ jobs:
         elixir-version:
           - 1.14.5
           - 1.15.7
-          - 1.16.2
+          - 1.16.3
+          - 1.17.2
         otp-version:
-          - 24.3.4.17
           - 25.3.2.11
-          - 26.2.4
+          - 26.2.5.2
+        include:
+          - elixir-version: 1.17.2
+            otp-version: 27.0.1
+            coverage: true
+          - elixir-version: 1.16.3
+            otp-version: 24.3.4.17
+          - elixir-version: 1.14.5
+            otp-version: 26.2.5.2
     env:
       MIX_ENV: test
     steps:
@@ -40,10 +48,10 @@ jobs:
       - name: Run Tests With Coverage Report
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ matrix.otp-version == '26.2.4' && matrix.elixir-version == '1.16.2' }}
+        if: ${{ matrix.coverage }}
         run: mix coveralls.github
       - name: Run Tests
-        if: ${{ !(matrix.otp-version == '26.2.4' && matrix.elixir-version == '1.16.2') }}
+        if: ${{ ! matrix.coverage }}
         run: mix test
       - run: mix dialyzer --halt-exit-status
       - run: mix credo --strict
