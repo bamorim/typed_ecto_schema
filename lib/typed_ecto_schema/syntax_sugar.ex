@@ -91,9 +91,12 @@ defmodule TypedEctoSchema.SyntaxSugar do
     quote do
       unquote(call)
 
+      # Handle case where @timestamps_opts might be nil in newer Ecto versions
+      timestamps_opts = Module.get_attribute(__MODULE__, :timestamps_opts) || []
+
       unquote(TypeBuilder).add_timestamps(
         __MODULE__,
-        Keyword.merge(@timestamps_opts, unquote(opts))
+        Keyword.merge(timestamps_opts, unquote(opts))
       )
     end
   end
