@@ -93,7 +93,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
 
       unquote(TypeBuilder).add_timestamps(
         __MODULE__,
-        Keyword.merge(@timestamps_opts, unquote(opts))
+        Keyword.merge(Module.get_attribute(__MODULE__, :timestamps_opts) || [], unquote(opts))
       )
     end
   end
