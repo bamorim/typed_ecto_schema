@@ -43,7 +43,17 @@ defmodule TypedEctoSchema.SyntaxSugar do
   @spec transform_expression(Macro.t(), Macro.Env.t()) :: Macro.t()
   defp transform_expression({function_name, _, [name, type, opts]}, _env)
        when function_name in @schema_function_names do
-    ecto_opts = Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null])
+    # FIX for issue #52: Handle both compile-time keyword lists and runtime AST variable references
+    ecto_opts =
+      if Keyword.keyword?(opts) do
+        # If opts is a compile-time keyword list, drop keys at compile time
+        Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null])
+      else
+        # If opts is an AST variable reference, generate code to drop keys at runtime
+        quote do
+          Keyword.drop(unquote(opts), [:__typed_ecto_type__, :enforce, :null])
+        end
+      end
 
     quote do
       unquote(function_name)(unquote(name), unquote(type), unquote(ecto_opts))
