@@ -4,7 +4,7 @@ defmodule TypedEctoSchema.MixProject do
   def project do
     [
       app: :typed_ecto_schema,
-      version: "0.4.2",
+      version: "0.4.3",
       elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
       test_elixirc_options: [debug_info: true, docs: true],
