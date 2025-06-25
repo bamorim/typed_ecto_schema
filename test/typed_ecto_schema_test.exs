@@ -869,6 +869,47 @@ defmodule TypedEctoSchemaTest do
            }
   end
 
+  # Issue #52: 0.4.2 breaks usage in defmacro when opts becomes AST variable reference
+  defmodule Issue52TestMacro do
+    defmacro problematic_field(name, type, var_opts) do
+      quote do
+        # This creates opts as an AST variable reference, causing Keyword.drop to fail
+        field(unquote(name), unquote(type), unquote(var_opts))
+      end
+    end
+
+    defmacro __using__(_) do
+      quote do
+        use TypedEctoSchema
+        import unquote(__MODULE__)
+      end
+    end
+  end
+
+  test "issue #52: should handle AST variable opts in macros" do
+    # This should now work with the fix applied
+    [{module, _}] =
+      Code.compile_quoted(
+        quote do
+          defmodule Issue52FixedSchema do
+            use Issue52TestMacro
+
+            # Variable opts becomes AST reference, but now handled properly by the fix
+            opts = [null: false, enforce: true]
+
+            typed_embedded_schema do
+              problematic_field(:field_name, :string, opts)
+            end
+          end
+        end
+      )
+
+    # Verify the schema was created correctly
+    assert module == Issue52FixedSchema
+    fields = module.__schema__(:fields)
+    assert :field_name in fields
+  end
+
   ##
   ## Helpers
   ##
