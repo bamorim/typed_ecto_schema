@@ -125,19 +125,23 @@ defmodule TypedEctoSchema.TypeBuilder do
     schema_opts = Module.get_attribute(mod, :__typed_ecto_schema_module_opts__)
 
     type =
-      TypedEctoSchema.EctoTypeMapper.type_for(
-        ecto_type,
-        function_name,
-        Keyword.get(schema_opts, :null),
-        Keyword.take(field_opts, [:null, :values])
-      )
+      case Keyword.fetch(field_opts, :__typed_ecto_type__) do
+        {:ok, overriden_type} ->
+          overriden_type
 
-    overriden_type = Keyword.get(field_opts, :__typed_ecto_type__, type)
+        :error ->
+          TypedEctoSchema.EctoTypeMapper.type_for(
+            ecto_type,
+            function_name,
+            Keyword.get(schema_opts, :null),
+            Keyword.take(field_opts, [:null, :values])
+          )
+      end
 
     Module.put_attribute(
       mod,
       :__typed_ecto_schema_types__,
-      {name, overriden_type}
+      {name, type}
     )
 
     if field_is_enforced?(schema_opts, field_opts),
