@@ -70,6 +70,13 @@ Install it, add to your deps:
 And change your `use Ecto.Schema` for `use TypedEctoSchema` and change the calls to `schema` for
 `typed_schema` and `embedded_schema` to `typed_embedded_schema`.
 
+The extra `:null` and `:enforce` options also work on the `@primary_key` attribute, so you can
+have a non-nullable (and/or enforced) primary key type:
+
+```elixir
+@primary_key {:id, :binary_id, autogenerate: true, null: false}
+```
+
 Check the [online documentation](https://hexdocs.pm/typed_ecto_schema) for further details.
 
 ## Credits
