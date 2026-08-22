@@ -1070,6 +1070,83 @@ defmodule TypedEctoSchemaTest do
     assert :field_name in fields
   end
 
+  # Issue #57: empty Ecto.Enum values crashed type inference even when the type was overridden
+  defmodule EmptyEnumValuesWithOverride do
+    use TypedEctoSchema
+
+    typed_embedded_schema do
+      field(:foo, {:array, Ecto.Enum}, values: [], default: []) :: list(String.t())
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  defmodule EmptyEnumValues do
+    use TypedEctoSchema
+
+    typed_embedded_schema do
+      field(:foo, Ecto.Enum, values: [])
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  defmodule EnumValuesFromAttribute do
+    use TypedEctoSchema
+
+    @role_values [:admin, :user]
+
+    typed_embedded_schema do
+      field(:role, Ecto.Enum, values: @role_values)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  test "issue #57: empty Ecto.Enum values compile when the type is overridden" do
+    types =
+      quote do
+        [
+          id: binary() | nil,
+          foo: list(String.t())
+        ]
+      end
+
+    assert delete_context(EmptyEnumValuesWithOverride.get_types()) == delete_context(types)
+  end
+
+  test "issue #57: empty Ecto.Enum values without a type override fall back to any()" do
+    types =
+      quote do
+        [
+          id: binary() | nil,
+          foo: any() | nil
+        ]
+      end
+
+    assert delete_context(EmptyEnumValues.get_types()) == delete_context(types)
+  end
+
+  test "Ecto.Enum values given through a module attribute generate the exact union type" do
+    types =
+      quote do
+        [
+          id: binary() | nil,
+          role: (:admin | :user) | nil
+        ]
+      end
+
+    assert delete_context(EnumValuesFromAttribute.get_types()) == delete_context(types)
+  end
+
+  test "Ecto.Enum values that are not a literal list fall back to any()" do
+    values_ast = quote(do: @role_values)
+
+    type = TypedEctoSchema.EctoTypeMapper.type_for(Ecto.Enum, :field, false, values: values_ast)
+
+    assert delete_context(type) == delete_context(quote(do: any()))
+  end
+
   ##
   ## Helpers
   ##

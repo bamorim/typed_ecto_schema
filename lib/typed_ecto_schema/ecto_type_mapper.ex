@@ -92,9 +92,7 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   end
 
   defp base_type_for({:__aliases__, _, [:Ecto, :Enum]}, opts) do
-    opts
-    |> Keyword.get(:values, [])
-    |> disjunction_typespec()
+    enum_type(opts)
   end
 
   defp base_type_for({:__aliases__, _, _} = ast, _opts) do
@@ -106,9 +104,7 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   defp base_type_for(atom, opts) when is_atom(atom) do
     case to_string(atom) do
       "Elixir.Ecto.Enum" ->
-        opts
-        |> Keyword.get(:values, [])
-        |> disjunction_typespec()
+        enum_type(opts)
 
       "Elixir." <> _ ->
         quote do
@@ -131,6 +127,20 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   ##
   ## Type Transformation Helpers
   ##
+
+  @spec enum_type(field_options()) :: Macro.t()
+  defp enum_type(opts) do
+    case Keyword.get(opts, :values) do
+      [_ | _] = values ->
+        disjunction_typespec(values)
+
+      # Empty or non-literal values, we can't build a meaningful union
+      _ ->
+        quote do
+          any()
+        end
+    end
+  end
 
   @spec disjunction_typespec(list(atom()) | list({atom(), integer()})) :: Macro.t()
   defp disjunction_typespec([entry | _rest] = all) do
