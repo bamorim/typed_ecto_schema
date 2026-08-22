@@ -79,6 +79,36 @@ have a non-nullable (and/or enforced) primary key type:
 
 Check the [online documentation](https://hexdocs.pm/typed_ecto_schema) for further details.
 
+## PolymorphicEmbed support
+
+[`polymorphic_embed`](https://github.com/mathieuprog/polymorphic_embed)'s
+`polymorphic_embeds_one/2` and `polymorphic_embeds_many/2` work out of the box inside
+`typed_schema` blocks. The typespec is inferred as the union of the modules listed in the
+`:types` option:
+
+```elixir
+defmodule Reminder do
+  use TypedEctoSchema
+
+  import PolymorphicEmbed
+
+  typed_schema "reminders" do
+    polymorphic_embeds_one(:channel,
+      types: [sms: SMS, email: Email],
+      on_replace: :update
+    )
+  end
+end
+```
+
+This generates `channel: (SMS.t() | Email.t()) | nil`, while `polymorphic_embeds_many`
+generates a list of the union instead. The `::` type override and the `:null` and `:enforce`
+options work just like they do for `field/3`. When the `:types` option cannot be resolved at
+compile time (for example, when it is a module attribute), the type falls back to `any()`.
+
+Note that `polymorphic_embed` is not a dependency of this library: the calls are recognized
+by name, so you still need to add it to your own deps and import it yourself.
+
 ## Credits
 
 This project started as a fork of the awesome [`typed_struct`].

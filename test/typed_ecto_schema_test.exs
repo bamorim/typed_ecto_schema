@@ -1147,6 +1147,164 @@ defmodule TypedEctoSchemaTest do
     assert delete_context(type) == delete_context(quote(do: any()))
   end
 
+  ## PolymorphicEmbed integration (issue #40)
+
+  defmodule PolymorphicSms do
+    use TypedEctoSchema
+
+    typed_embedded_schema do
+      field(:number, :string)
+    end
+  end
+
+  defmodule PolymorphicEmail do
+    use TypedEctoSchema
+
+    typed_embedded_schema do
+      field(:address, :string)
+    end
+  end
+
+  defmodule WithPolymorphicEmbeds do
+    use TypedEctoSchema
+
+    import PolymorphicEmbed
+
+    typed_schema "with_polymorphic" do
+      polymorphic_embeds_one(:one,
+        types: [sms: PolymorphicSms, email: PolymorphicEmail],
+        on_type_not_found: :raise,
+        on_replace: :update
+      )
+
+      polymorphic_embeds_many(:many,
+        types: [sms: PolymorphicSms, email: PolymorphicEmail],
+        on_type_not_found: :raise,
+        on_replace: :delete
+      )
+
+      polymorphic_embeds_one(:one_overriden,
+        types: [sms: PolymorphicSms],
+        on_replace: :update
+      ) :: map() | nil
+
+      polymorphic_embeds_many(:many_overriden,
+        types: [sms: PolymorphicSms],
+        on_replace: :delete
+      ) :: list(map())
+
+      polymorphic_embeds_one(:with_module_opts,
+        types: [
+          sms: [module: PolymorphicSms, identify_by_fields: [:number]]
+        ],
+        on_replace: :update
+      )
+
+      polymorphic_embeds_one(:enforced,
+        types: [sms: PolymorphicSms],
+        on_replace: :update,
+        enforce: true,
+        null: false
+      )
+    end
+
+    def enforce_keys, do: @enforce_keys
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  test "generates polymorphic embed types from the :types option" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          id: integer() | nil,
+          one: (PolymorphicSms.t() | PolymorphicEmail.t()) | nil,
+          many: list(PolymorphicSms.t() | PolymorphicEmail.t()),
+          one_overriden: map() | nil,
+          many_overriden: list(map()),
+          with_module_opts: PolymorphicSms.t() | nil,
+          enforced: PolymorphicSms.t()
+        ]
+      end
+
+    assert delete_context(WithPolymorphicEmbeds.get_types()) == delete_context(types)
+  end
+
+  test "polymorphic embeds can be enforced" do
+    assert WithPolymorphicEmbeds.enforce_keys() == [:enforced]
+  end
+
+  test "still runs the polymorphic_embed macros" do
+    assert WithPolymorphicEmbeds.__schema__(:fields) == [
+             :id,
+             :one,
+             :many,
+             :one_overriden,
+             :many_overriden,
+             :with_module_opts,
+             :enforced
+           ]
+
+    struct = struct(WithPolymorphicEmbeds)
+    assert struct.one == nil
+    assert struct.many == []
+  end
+
+  defmodule PolymorphicWithModuleAttributeTypes do
+    use TypedEctoSchema
+
+    import PolymorphicEmbed
+
+    @types [sms: PolymorphicSms]
+
+    typed_schema "with_polymorphic_attr" do
+      polymorphic_embeds_one(:one, types: @types, on_replace: :update)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  test "falls back to any() when polymorphic types are not statically known" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          id: integer() | nil,
+          one: any() | nil
+        ]
+      end
+
+    assert delete_context(PolymorphicWithModuleAttributeTypes.get_types()) ==
+             delete_context(types)
+  end
+
+  defmodule ImportsPolymorphicButDoesNotUse do
+    use TypedEctoSchema
+
+    import PolymorphicEmbed, warn: false
+
+    typed_schema "no_polymorphic" do
+      field(:int, :integer)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  test "schemas that don't use polymorphic embeds are unaffected" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          id: integer() | nil,
+          int: integer() | nil
+        ]
+      end
+
+    assert delete_context(ImportsPolymorphicButDoesNotUse.get_types()) ==
+             delete_context(types)
+  end
+
   ##
   ## Helpers
   ##

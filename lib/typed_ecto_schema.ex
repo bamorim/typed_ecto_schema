@@ -126,6 +126,35 @@ defmodule TypedEctoSchema do
 
   And then have a `non_neg_integer()` type for it.
 
+  ## Integration with PolymorphicEmbed
+
+  The `polymorphic_embeds_one/2` and `polymorphic_embeds_many/2` macros from the
+  [`polymorphic_embed`](https://hexdocs.pm/polymorphic_embed) library are supported out of the
+  box. The typespec is inferred as the union of the modules listed in the `:types` option:
+
+      typed_schema "reminders" do
+        polymorphic_embeds_one(:channel,
+          types: [sms: SMS, email: Email],
+          on_replace: :update
+        )
+      end
+
+  This generates `channel: (SMS.t() | Email.t()) | nil`. `polymorphic_embeds_many/2` generates
+  a list of the union instead (and, as usual for "many" fields, never receives `| nil`). Both
+  the `types: [name: Module]` and the `types: [name: [module: Module, ...]]` forms are
+  supported, as are the `::` type override and the `:null` and `:enforce` options:
+
+      polymorphic_embeds_one(:channel,
+        types: [sms: SMS, email: Email],
+        on_replace: :update
+      ) :: SMS.t() | Email.t()
+
+  When the `:types` option cannot be resolved at compile time (for example, when it is a module
+  attribute), the type falls back to `any()`.
+
+  Note that `polymorphic_embed` is not a dependency of this library: the calls are recognized
+  by name, so you still need to add it to your own deps and import it yourself.
+
   ## Non explicit generated fields
 
   Ecto generates some fields for you in a lot of cases, they are:

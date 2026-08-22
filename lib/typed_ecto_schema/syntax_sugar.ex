@@ -19,6 +19,8 @@ defmodule TypedEctoSchema.SyntaxSugar do
 
   @embeds_function_names [:embeds_one, :embeds_many]
 
+  @polymorphic_embeds_function_names [:polymorphic_embeds_one, :polymorphic_embeds_many]
+
   @spec apply_to_block(Macro.t(), Macro.Env.t()) :: Macro.t()
   def apply_to_block(block, env) do
     calls =
@@ -80,6 +82,31 @@ defmodule TypedEctoSchema.SyntaxSugar do
         unquote(Macro.escape(type)),
         []
       )
+    end
+  end
+
+  # Matches `polymorphic_embeds_one/2` and `polymorphic_embeds_many/2` from the
+  # `polymorphic_embed` library purely by name, so it never becomes a dependency.
+  # The original call is emitted untouched (minus our extra options) so the real
+  # macro still runs.
+  defp transform_expression({function_name, _, [name, opts]} = expr, _env)
+       when function_name in @polymorphic_embeds_function_names do
+    if Keyword.keyword?(opts) do
+      ecto_opts = Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null])
+
+      quote do
+        unquote(function_name)(unquote(name), unquote(ecto_opts))
+
+        unquote(TypeBuilder).add_field(
+          __MODULE__,
+          unquote(function_name),
+          unquote(name),
+          unquote(Macro.escape(polymorphic_embeds_type(opts))),
+          unquote(Keyword.take(opts, [:__typed_ecto_type__, :enforce, :null, :default]))
+        )
+      end
+    else
+      expr
     end
   end
 
@@ -160,6 +187,18 @@ defmodule TypedEctoSchema.SyntaxSugar do
     )
   end
 
+  defp transform_expression({:"::", _, [{function_name, _, [name, opts]}, type]} = expr, env)
+       when function_name in @polymorphic_embeds_function_names do
+    if Keyword.keyword?(opts) do
+      transform_expression(
+        {function_name, [], [name, [{:__typed_ecto_type__, Macro.escape(type)} | opts]]},
+        env
+      )
+    else
+      expr
+    end
+  end
+
   defp transform_expression({:"::", _, [{:field, _, [name]}, type]}, env) do
     transform_expression(
       {:field, [], [name, :string, [__typed_ecto_type__: Macro.escape(type)]]},
@@ -181,6 +220,52 @@ defmodule TypedEctoSchema.SyntaxSugar do
       call ->
         transform_expression(call, env)
     end
+  end
+
+  # Infers the typespec for a polymorphic embed from the `:types` option AST,
+  # without resolving the modules (which would add compile-time dependencies).
+  # Falls back to `any()` when the types are not statically known.
+  defp polymorphic_embeds_type(opts) do
+    types = Keyword.get(opts, :types, [])
+
+    module_types =
+      if is_list(types) do
+        Enum.map(types, &polymorphic_embed_module_type/1)
+      else
+        []
+      end
+
+    if module_types != [] and Enum.all?(module_types) do
+      type_union(module_types)
+    else
+      quote(do: any())
+    end
+  end
+
+  defp polymorphic_embed_module_type({type_name, type_opts})
+       when is_atom(type_name) and is_list(type_opts) do
+    if Keyword.keyword?(type_opts) do
+      module_type(Keyword.get(type_opts, :module))
+    end
+  end
+
+  defp polymorphic_embed_module_type({type_name, module}) when is_atom(type_name) do
+    module_type(module)
+  end
+
+  defp polymorphic_embed_module_type(_), do: nil
+
+  defp module_type({:__aliases__, _, _} = module), do: quote(do: unquote(module).t())
+
+  defp module_type(module) when is_atom(module) and not is_nil(module),
+    do: quote(do: unquote(module).t())
+
+  defp module_type(_), do: nil
+
+  defp type_union([type]), do: type
+
+  defp type_union([type | rest]) do
+    quote(do: unquote(type) | unquote(type_union(rest)))
   end
 
   @doc false
