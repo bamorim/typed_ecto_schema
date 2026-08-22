@@ -23,11 +23,17 @@ jobs:
         include:
           - elixir-version: 1.17.2
             otp-version: 27.0.1
-            coverage: true
           - elixir-version: 1.16.3
             otp-version: 24.3.4.17
-          - elixir-version: 1.14.5
-            otp-version: 26.2.5.2
+          - elixir-version: "1.18"
+            otp-version: "27"
+          - elixir-version: "1.19"
+            otp-version: "28"
+          - elixir-version: "1.20"
+            otp-version: "28"
+          - elixir-version: "1.20"
+            otp-version: "29"
+            coverage: true
     env:
       MIX_ENV: test
     steps:
