@@ -39,4 +39,4 @@ TypedEctoSchema is an Elixir library that provides a DSL on top of Ecto.Schema t
 
 ### Testing
 
-Tests are comprehensive and include typespec validation. Use `mix test` to run the full suite. The library supports Elixir 1.9+ with OTP 24-27.
+Tests are comprehensive and include typespec validation. Use `mix test` to run the full suite. CI tests Elixir 1.14 through 1.20 with OTP 24-29.
