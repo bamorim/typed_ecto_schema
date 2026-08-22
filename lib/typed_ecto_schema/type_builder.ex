@@ -103,13 +103,14 @@ defmodule TypedEctoSchema.TypeBuilder do
   @spec add_timestamps(module(), list({atom(), any()})) :: :ok
   def add_timestamps(module, opts) do
     type = Keyword.get(opts, :type, :naive_datetime)
+    field_opts = Keyword.take(opts, [:null, :enforce])
 
     with field when not is_boolean(field) <- Keyword.get(opts, :inserted_at, :inserted_at) do
-      add_field(module, :field, field, type, [])
+      add_field(module, :field, field, type, field_opts)
     end
 
     with field when not is_boolean(field) <- Keyword.get(opts, :updated_at, :updated_at) do
-      add_field(module, :field, field, type, [])
+      add_field(module, :field, field, type, field_opts)
     end
   end
 

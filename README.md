@@ -33,8 +33,8 @@ defmodule Person do
           phone: String.t() | nil,
           company_id: integer() | nil,
           company: Company.t() | Ecto.Association.NotLoaded.t() | nil,
-          inserted_at: NaiveDateTime.t(),
-          updated_at: NaiveDateTime.t()
+          inserted_at: NaiveDateTime.t() | nil,
+          updated_at: NaiveDateTime.t() | nil
         }
 end
 ```
@@ -55,6 +55,9 @@ defmodule Person do
   end
 end
 ```
+
+Note that the timestamps are nullable by default (a struct that was not inserted yet has `nil`
+timestamps). You can opt out with `timestamps(null: false)`.
 
 ## Usage
 

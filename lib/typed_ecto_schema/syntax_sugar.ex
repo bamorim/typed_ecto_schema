@@ -97,9 +97,18 @@ defmodule TypedEctoSchema.SyntaxSugar do
     end
   end
 
-  defp transform_expression({:timestamps, _, [opts]} = call, _env) do
+  defp transform_expression({:timestamps, _, [opts]}, _env) do
+    ecto_opts =
+      if Keyword.keyword?(opts) do
+        Keyword.drop(opts, [:enforce, :null])
+      else
+        quote do
+          Keyword.drop(unquote(opts), [:enforce, :null])
+        end
+      end
+
     quote do
-      unquote(call)
+      timestamps(unquote(ecto_opts))
 
       unquote(TypeBuilder).add_timestamps(
         __MODULE__,

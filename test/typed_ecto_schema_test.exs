@@ -512,6 +512,28 @@ defmodule TypedEctoSchemaTest do
     def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
+  defmodule TimestampsNotNull do
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_schema "table" do
+      timestamps(null: false)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
+  defmodule TimestampsCustomTypeNotNull do
+    use TypedEctoSchema
+
+    @primary_key false
+    typed_schema "table" do
+      timestamps(type: :utc_datetime, null: false)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
   test "timestamp fields follow the specified name and type" do
     types =
       quote do
@@ -524,6 +546,42 @@ defmodule TypedEctoSchemaTest do
 
     assert delete_context(TimestampsWithAttributeConfig.get_types()) ==
              delete_context(types)
+  end
+
+  test "timestamps with null: false are not nullable" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          inserted_at: unquote(NaiveDateTime).t(),
+          updated_at: unquote(NaiveDateTime).t()
+        ]
+      end
+
+    assert delete_context(TimestampsNotNull.get_types()) ==
+             delete_context(types)
+  end
+
+  test "timestamps with custom type and null: false are not nullable" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          inserted_at: unquote(DateTime).t(),
+          updated_at: unquote(DateTime).t()
+        ]
+      end
+
+    assert delete_context(TimestampsCustomTypeNotNull.get_types()) ==
+             delete_context(types)
+  end
+
+  test "timestamps options are passed to Ecto without the null option" do
+    assert TimestampsCustomTypeNotNull.__schema__(:type, :inserted_at) == :utc_datetime
+    assert TimestampsCustomTypeNotNull.__schema__(:type, :updated_at) == :utc_datetime
+
+    assert [{[:inserted_at, :updated_at], {Ecto.Schema, :__timestamps__, [:utc_datetime]}}] =
+             TimestampsCustomTypeNotNull.__schema__(:autogenerate)
   end
 
   test "inserted at field is not added when inserted_at: false" do

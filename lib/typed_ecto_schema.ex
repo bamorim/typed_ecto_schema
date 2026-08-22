@@ -34,8 +34,8 @@ defmodule TypedEctoSchema do
                 phone: String.t() | nil,
                 company_id: integer() | nil,
                 company: Company.t() | Ecto.Association.NotLoaded.t() | nil,
-                inserted_at: NaiveDateTime.t(),
-                updated_at: NaiveDateTime.t()
+                inserted_at: NaiveDateTime.t() | nil,
+                updated_at: NaiveDateTime.t() | nil
               }
       end
 
@@ -165,6 +165,11 @@ defmodule TypedEctoSchema do
   In the case of the timestamps, we currently don't allow overriding the type by using the `::` operator.
   That being said, however, we define the type of the fields using the `:type` option
   ([as defined by Ecto doc](https://hexdocs.pm/ecto/Ecto.Schema.html#timestamps/1-options))
+
+  The timestamp fields are nullable by default, since a struct that was not inserted yet has `nil`
+  timestamps. You can pass the `:null` and `:enforce` options to override that:
+
+      timestamps(null: false)
   """
 
   alias TypedEctoSchema.SyntaxSugar
