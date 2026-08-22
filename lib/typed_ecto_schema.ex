@@ -96,10 +96,15 @@ defmodule TypedEctoSchema do
     defines a default (`default: value`), since it makes no sense to have a default value for an
     enforced field.
   - `:opaque` - When `true` makes the generated type `t` be an opaque type.
-  - `:additional_types` - When `true`, defines a public named type for each `Ecto.Enum` field,
-    which can be referenced from other modules' specs. Default is `false`. See the section below.
+  - `:additional_types` - (Experimental) When `true`, defines a public named type for each
+    `Ecto.Enum` field, which can be referenced from other modules' specs. Default is `false`.
+    See the section below.
 
-  ## Named Types for Ecto.Enum Fields
+  ## Named Types for Ecto.Enum Fields (Experimental)
+
+  > #### Experimental {: .warning}
+  >
+  > This feature is experimental and its behavior may change in future releases.
 
   When the schema-level `:additional_types` option is enabled, each `Ecto.Enum` field generates a
   public type named after the field, containing the union of its values:

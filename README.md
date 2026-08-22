@@ -77,7 +77,9 @@ have a non-nullable (and/or enforced) primary key type:
 @primary_key {:id, :binary_id, autogenerate: true, null: false}
 ```
 
-### Named types for `Ecto.Enum` fields
+### Named types for `Ecto.Enum` fields (experimental)
+
+> **Note:** this feature is experimental and its behavior may change in future releases.
 
 By passing the opt-in `additional_types: true` option to `typed_schema` or
 `typed_embedded_schema`, each `Ecto.Enum` field also generates a public type named after the
