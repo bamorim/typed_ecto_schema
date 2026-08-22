@@ -1450,6 +1450,115 @@ defmodule TypedEctoSchemaTest do
     end
   end
 
+  ## Additional types for Ecto.Enum fields (issue #39)
+
+  {:module, _name, bytecode_additional_types, _exports} =
+    defmodule WithAdditionalTypes do
+      use TypedEctoSchema
+
+      @role_values [:admin, :user]
+
+      @primary_key false
+      typed_schema "table", additional_types: true do
+        field(:simple, Ecto.Enum, values: [:foo, :bar])
+        field(:keyed, Ecto.Enum, values: [one: 1, two: 2])
+        field(:array, {:array, Ecto.Enum}, values: [:a, :b])
+        field(:from_attribute, Ecto.Enum, values: @role_values)
+        field(:t, Ecto.Enum, values: [:skipped])
+        field(:not_enum, :integer)
+      end
+    end
+
+  {:module, _name, bytecode_embedded_additional_types, _exports} =
+    defmodule EmbeddedWithAdditionalTypes do
+      use TypedEctoSchema
+
+      @primary_key false
+      typed_embedded_schema additional_types: true do
+        field(:status, Ecto.Enum, values: [:on, :off])
+      end
+    end
+
+  @bytecode_additional_types bytecode_additional_types
+  @bytecode_embedded_additional_types bytecode_embedded_additional_types
+
+  test "generates named types for enum fields when additional_types is enabled" do
+    assert {:type, delete_context(quote(do: simple() :: :foo | :bar))} in extract_all_types(
+             @bytecode_additional_types
+           )
+  end
+
+  test "generates the union of keys as named type for keyed enum values" do
+    assert {:type, delete_context(quote(do: keyed() :: :one | :two))} in extract_all_types(
+             @bytecode_additional_types
+           )
+  end
+
+  test "generates the element union as named type for arrays of enums" do
+    assert {:type, delete_context(quote(do: array() :: :a | :b))} in extract_all_types(
+             @bytecode_additional_types
+           )
+  end
+
+  test "generates named types for enum values resolved from module attributes" do
+    assert {:type, delete_context(quote(do: from_attribute() :: :admin | :user))} in extract_all_types(
+             @bytecode_additional_types
+           )
+  end
+
+  test "does not generate a named type for enum fields named t" do
+    # If a `t` type was generated for the field it would conflict with the
+    # schema's own `t/0` and the module wouldn't even compile.
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <- extract_all_types(@bytecode_additional_types),
+          do: name
+
+    assert Enum.count(type_names, &(&1 == :t)) == 1
+  end
+
+  test "does not generate named types for non-enum fields" do
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <- extract_all_types(@bytecode_additional_types),
+          do: name
+
+    refute :not_enum in type_names
+  end
+
+  test "generates named types for enum fields on typed_embedded_schema" do
+    assert {:type, delete_context(quote(do: status() :: :on | :off))} in extract_all_types(
+             @bytecode_embedded_additional_types
+           )
+  end
+
+  test "does not generate named types for enum fields by default" do
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <- extract_all_types(@bytecode), do: name
+
+    assert type_names == [:t]
+  end
+
+  test "silently skips enum fields whose values are not statically resolvable" do
+    # Simulates `:values` reaching the builder as unevaluated AST
+    # (e.g. through a macro escaping its options).
+    defmodule UnresolvableValues do
+      require TypedEctoSchema.TypeBuilder
+
+      TypedEctoSchema.TypeBuilder.init(additional_types: true)
+
+      TypedEctoSchema.TypeBuilder.add_field(
+        __MODULE__,
+        :field,
+        :status,
+        Ecto.Enum,
+        values: {:@, [], [{:role_values, [], nil}]}
+      )
+
+      def enum_types, do: @__typed_ecto_schema_enum_types__
+    end
+
+    assert UnresolvableValues.enum_types() == []
+  end
+
   ##
   ## Helpers
   ##
@@ -1470,6 +1579,15 @@ defmodule TypedEctoSchemaTest do
     case Code.Typespec.fetch_types(bytecode) do
       {:ok, types} -> Keyword.get(types, type_keyword)
       _ -> nil
+    end
+  end
+
+  # Extracts all types from a module as context-free quoted expressions.
+  defp extract_all_types(bytecode) do
+    {:ok, types} = Code.Typespec.fetch_types(bytecode)
+
+    for {kind, type} <- types do
+      {kind, delete_context(Code.Typespec.type_to_quoted(type))}
     end
   end
 

@@ -18,6 +18,7 @@ defmodule TypedEctoSchema.TypeBuilder do
            {:null, boolean()}
            | {:enforce, boolean()}
            | {:opaque, boolean()}
+           | {:additional_types, boolean()}
 
   @type schema_options :: list(schema_option)
 
@@ -25,7 +26,7 @@ defmodule TypedEctoSchema.TypeBuilder do
 
   @type field_options :: list(field_option)
 
-  @default_schema_opts null: true, enforce: false, opaque: false
+  @default_schema_opts null: true, enforce: false, opaque: false, additional_types: false
 
   defmacro init(schema_opts) do
     schema_opts = Keyword.merge(@default_schema_opts, schema_opts)
@@ -40,6 +41,12 @@ defmodule TypedEctoSchema.TypeBuilder do
       Module.register_attribute(
         __MODULE__,
         :__typed_ecto_schema_enforced_keys__,
+        accumulate: true
+      )
+
+      Module.register_attribute(
+        __MODULE__,
+        :__typed_ecto_schema_enum_types__,
         accumulate: true
       )
 
@@ -63,6 +70,16 @@ defmodule TypedEctoSchema.TypeBuilder do
         @__typed_ecto_schema_types__,
         unquote(schema_opts)
       )
+
+      unquote(__MODULE__).__define_enum_types__(@__typed_ecto_schema_enum_types__)
+    end
+  end
+
+  defmacro __define_enum_types__(enum_types) do
+    quote bind_quoted: [enum_types: enum_types] do
+      for {name, type} <- Enum.reverse(enum_types) do
+        @type unquote(name)() :: unquote(type)
+      end
     end
   end
 
@@ -177,6 +194,9 @@ defmodule TypedEctoSchema.TypeBuilder do
     if field_is_enforced?(schema_opts, field_opts),
       do: Module.put_attribute(mod, :__typed_ecto_schema_enforced_keys__, name)
 
+    if Keyword.get(schema_opts, :additional_types, false),
+      do: add_enum_type(mod, name, ecto_type, field_opts)
+
     if function_name == :belongs_to and
          Keyword.get(field_opts, :define_field, true) do
       add_field(
@@ -193,6 +213,48 @@ defmodule TypedEctoSchema.TypeBuilder do
 
   def add_field(_mod, _macro, name, _type, _opts) do
     raise ArgumentError, "a field name must be an atom, got #{inspect(name)}"
+  end
+
+  # Fields named `t` are skipped since the type would collide with the schema's own `t/0`.
+  @spec add_enum_type(module(), atom(), Ecto.Type.t(), field_options()) :: :ok
+  defp add_enum_type(mod, name, ecto_type, field_opts) do
+    if name != :t and enum_type?(ecto_type) do
+      case enum_values_type(Keyword.get(field_opts, :values)) do
+        {:ok, type} ->
+          Module.put_attribute(mod, :__typed_ecto_schema_enum_types__, {name, type})
+
+        :error ->
+          :ok
+      end
+    end
+
+    :ok
+  end
+
+  @spec enum_type?(Ecto.Type.t() | Macro.t()) :: boolean()
+  defp enum_type?({:array, type}), do: enum_type?(type)
+  defp enum_type?({:__aliases__, _, [:Ecto, :Enum]}), do: true
+  defp enum_type?(Ecto.Enum), do: true
+  defp enum_type?(_), do: false
+
+  @spec enum_values_type(any()) :: {:ok, Macro.t()} | :error
+  defp enum_values_type([_ | _] = values) do
+    cond do
+      Enum.all?(values, &is_atom/1) -> {:ok, atoms_to_union(values)}
+      Keyword.keyword?(values) -> {:ok, atoms_to_union(Keyword.keys(values))}
+      true -> :error
+    end
+  end
+
+  defp enum_values_type(_values), do: :error
+
+  @spec atoms_to_union(nonempty_list(atom())) :: Macro.t()
+  defp atoms_to_union([atom]), do: atom
+
+  defp atoms_to_union([head | tail]) do
+    quote do
+      unquote(head) | unquote(atoms_to_union(tail))
+    end
   end
 
   @spec field_is_enforced?(schema_options(), field_options()) :: boolean()

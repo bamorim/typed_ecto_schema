@@ -77,6 +77,28 @@ have a non-nullable (and/or enforced) primary key type:
 @primary_key {:id, :binary_id, autogenerate: true, null: false}
 ```
 
+### Named types for `Ecto.Enum` fields
+
+By passing the opt-in `additional_types: true` option to `typed_schema` or
+`typed_embedded_schema`, each `Ecto.Enum` field also generates a public type named after the
+field, containing the union of its values:
+
+```elixir
+defmodule Person do
+  use TypedEctoSchema
+
+  typed_schema "people", additional_types: true do
+    field(:role, Ecto.Enum, values: [:admin, :user])
+  end
+end
+```
+
+This defines `@type role() :: :admin | :user`, which can be referenced from other modules as
+`Person.role()`. Keyword values (`values: [foo: 1, bar: 2]`) generate the union of the atom keys
+and `{:array, Ecto.Enum}` fields generate the union of the element values. Fields whose values
+can't be resolved at compile time and fields named `t` (which would conflict with the schema's
+own `t/0`) are silently skipped; other name collisions with existing types error at compile time.
+
 Check the [online documentation](https://hexdocs.pm/typed_ecto_schema) for further details.
 
 ## PolymorphicEmbed support (experimental)
