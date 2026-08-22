@@ -76,9 +76,36 @@ defmodule TypedEctoSchema.TypeBuilder do
     end
   end
 
+  @enhanced_field_opts [:null, :enforce]
+
+  # Strips the enhanced field options from `@primary_key` before `Ecto.Schema`
+  # reads it (it would raise on them), keeping the original for `add_primary_key/1`.
+  @spec strip_primary_key_opts(module()) :: :ok
+  def strip_primary_key_opts(module) do
+    case Module.get_attribute(module, :primary_key) do
+      {name, type, field_opts} = primary_key ->
+        Module.put_attribute(module, :__typed_ecto_schema_primary_key__, primary_key)
+
+        Module.put_attribute(
+          module,
+          :primary_key,
+          {name, type, Keyword.drop(field_opts, @enhanced_field_opts)}
+        )
+
+        :ok
+
+      _ ->
+        :ok
+    end
+  end
+
   @spec add_primary_key(module()) :: :ok
   def add_primary_key(module) do
-    case Module.get_attribute(module, :primary_key) do
+    primary_key =
+      Module.get_attribute(module, :__typed_ecto_schema_primary_key__) ||
+        Module.get_attribute(module, :primary_key)
+
+    case primary_key do
       {name, type, field_opts} ->
         add_field(module, :field, name, type, field_opts)
         :ok
