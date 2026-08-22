@@ -14,8 +14,13 @@ defmodule TypedEctoSchema.MixProject do
       docs: docs(),
       description:
         "A library to define Ecto schemas with typespecs without all the boilerplate code.",
-      test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
+      test_coverage: [tool: ExCoveralls]
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
         coveralls: :test,
         "coveralls.github": :test
       ]
@@ -36,7 +41,7 @@ defmodule TypedEctoSchema.MixProject do
   defp deps do
     [
       # Development and test dependencies
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
+      {:credo, ">= 1.7.0", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test, runtime: false},
 

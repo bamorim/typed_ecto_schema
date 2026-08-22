@@ -850,8 +850,6 @@ defmodule TypedEctoSchemaTest do
   end
 
   test "pre macro passed schema" do
-    require IEx.Helpers
-
     assert CustomMacroSchema.__schema__(:fields) == [
              :id,
              :name,
