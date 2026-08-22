@@ -106,6 +106,7 @@ defmodule TypedEctoSchemaTest do
       field(:normal, :integer)
       field(:enforced, :integer, enforce: false)
       field(:overriden, :integer, null: true)
+      field(:overriden_with_opts, :integer, enforce: false) :: 1 | 2
       has_one(:has_one, HasOne)
       belongs_to(:belongs_to, BelongsTo)
       has_many(:has_many, HasMany)
@@ -407,6 +408,7 @@ defmodule TypedEctoSchemaTest do
           normal: integer(),
           enforced: integer(),
           overriden: integer() | nil,
+          overriden_with_opts: 1 | 2,
           has_one: unquote(Ecto.Schema).has_one(HasOne.t()),
           belongs_to: unquote(Ecto.Schema).belongs_to(BelongsTo.t()),
           belongs_to_id: integer(),
@@ -1170,6 +1172,8 @@ defmodule TypedEctoSchemaTest do
 
     import PolymorphicEmbed
 
+    @sms_module PolymorphicSms
+
     typed_schema "with_polymorphic" do
       polymorphic_embeds_one(:one,
         types: [sms: PolymorphicSms, email: PolymorphicEmail],
@@ -1206,6 +1210,21 @@ defmodule TypedEctoSchemaTest do
         enforce: true,
         null: false
       )
+
+      polymorphic_embeds_one(:atom_module,
+        types: [sms: :"Elixir.TypedEctoSchemaTest.PolymorphicSms"],
+        on_replace: :update
+      )
+
+      polymorphic_embeds_one(:unresolvable_module,
+        types: [sms: [module: @sms_module]],
+        on_replace: :update
+      )
+
+      polymorphic_embeds_one(:unresolvable_entry,
+        types: [{"sms", PolymorphicSms}],
+        on_replace: :update
+      )
     end
 
     def enforce_keys, do: @enforce_keys
@@ -1224,7 +1243,10 @@ defmodule TypedEctoSchemaTest do
           one_overriden: map() | nil,
           many_overriden: list(map()),
           with_module_opts: PolymorphicSms.t() | nil,
-          enforced: PolymorphicSms.t()
+          enforced: PolymorphicSms.t(),
+          atom_module: unquote(PolymorphicSms).t() | nil,
+          unresolvable_module: any() | nil,
+          unresolvable_entry: any() | nil
         ]
       end
 
@@ -1243,7 +1265,10 @@ defmodule TypedEctoSchemaTest do
              :one_overriden,
              :many_overriden,
              :with_module_opts,
-             :enforced
+             :enforced,
+             :atom_module,
+             :unresolvable_module,
+             :unresolvable_entry
            ]
 
     struct = struct(WithPolymorphicEmbeds)
@@ -1305,9 +1330,52 @@ defmodule TypedEctoSchemaTest do
              delete_context(types)
   end
 
+  test "leaves polymorphic embed calls with non-literal opts untouched" do
+    one = {:polymorphic_embeds_one, [], [:form, {:opts, [], nil}]}
+
+    many_with_type =
+      {:"::", [], [{:polymorphic_embeds_many, [], [:forms, {:opts, [], nil}]}, {:map, [], []}]}
+
+    block = {:__block__, [], [one, many_with_type]}
+
+    assert TypedEctoSchema.SyntaxSugar.apply_to_block(block, __ENV__) ==
+             {:__block__, [], [one, many_with_type]}
+  end
+
+  ## Internal type mapping edge cases
+
+  test "EctoTypeMapper infers composite, evaluated and unknown types" do
+    assert mapped_type({:array, :string}) ==
+             delete_context(quote(do: list(unquote(String).t()) | nil))
+
+    assert mapped_type({:map, :integer}) ==
+             delete_context(quote(do: %{optional(any()) => integer()} | nil))
+
+    assert mapped_type(Ecto.Enum, values: [:foo, :bar]) ==
+             delete_context(quote(do: (:foo | :bar) | nil))
+
+    assert mapped_type(Ecto.Enum, values: ["not", "atoms"]) ==
+             delete_context(quote(do: any() | nil))
+
+    assert mapped_type(:some_unknown_type) == delete_context(quote(do: any() | nil))
+
+    assert mapped_type({:parameterized, {PolymorphicEmbed, %{}}}) ==
+             delete_context(quote(do: any() | nil))
+  end
+
+  test "TypeBuilder.add_field raises when the field name is not an atom" do
+    assert_raise ArgumentError, ~s(a field name must be an atom, got "bad"), fn ->
+      TypedEctoSchema.TypeBuilder.add_field(__MODULE__, :field, "bad", :string, [])
+    end
+  end
+
   ##
   ## Helpers
   ##
+
+  defp mapped_type(ecto_type, opts \\ []) do
+    delete_context(TypedEctoSchema.EctoTypeMapper.type_for(ecto_type, :field, true, opts))
+  end
 
   # Extracts the first type from a module.
   defp extract_first_type(bytecode, type_keyword \\ :type) do
