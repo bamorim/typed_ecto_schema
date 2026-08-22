@@ -534,6 +534,19 @@ defmodule TypedEctoSchemaTest do
     def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
   end
 
+  defmodule TimestampsVariableOpts do
+    use TypedEctoSchema
+
+    opts = [type: :utc_datetime, null: false]
+
+    @primary_key false
+    typed_schema "table" do
+      timestamps(opts)
+    end
+
+    def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+  end
+
   test "timestamp fields follow the specified name and type" do
     types =
       quote do
@@ -574,6 +587,22 @@ defmodule TypedEctoSchemaTest do
 
     assert delete_context(TimestampsCustomTypeNotNull.get_types()) ==
              delete_context(types)
+  end
+
+  test "timestamps handles AST variable opts" do
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          inserted_at: unquote(DateTime).t(),
+          updated_at: unquote(DateTime).t()
+        ]
+      end
+
+    assert delete_context(TimestampsVariableOpts.get_types()) ==
+             delete_context(types)
+
+    assert TimestampsVariableOpts.__schema__(:type, :inserted_at) == :utc_datetime
   end
 
   test "timestamps options are passed to Ecto without the null option" do
