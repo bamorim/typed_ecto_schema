@@ -4,7 +4,7 @@ defmodule TypedEctoSchema.MixProject do
   def project do
     [
       app: :typed_ecto_schema,
-      version: "0.4.3",
+      version: "0.4.4",
       elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
       test_elixirc_options: [debug_info: true, docs: true],
@@ -56,7 +56,8 @@ defmodule TypedEctoSchema.MixProject do
   defp docs do
     [
       main: "TypedEctoSchema",
-      source_url: "https://github.com/bamorim/typed_ecto_schema"
+      source_url: "https://github.com/bamorim/typed_ecto_schema",
+      extras: ["CHANGELOG.md"]
     ]
   end
 
