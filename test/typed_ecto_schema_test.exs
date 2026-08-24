@@ -1342,6 +1342,87 @@ defmodule TypedEctoSchemaTest do
              {:__block__, [], [one, many_with_type]}
   end
 
+  test "with the flag disabled, same-named macros from other libraries are untouched" do
+    disable_polymorphic_embed()
+
+    [{module, _}] =
+      Code.compile_quoted(
+        quote do
+          defmodule OtherPolymorphicLibSchema do
+            use TypedEctoSchema
+
+            import TypedEctoSchema.OtherPolymorphicLib
+
+            typed_schema "other_lib" do
+              polymorphic_embeds_one(:form, null: false)
+            end
+
+            def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+          end
+        end
+      )
+
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          id: integer() | nil,
+          form: unquote(String).t()
+        ]
+      end
+
+    assert delete_context(module.get_types()) == delete_context(types)
+  end
+
+  test "with the flag disabled, real polymorphic_embed calls keep the old behavior" do
+    disable_polymorphic_embed()
+
+    [{module, _}] =
+      Code.compile_quoted(
+        quote do
+          defmodule DisabledPolymorphicSchema do
+            use TypedEctoSchema
+
+            import PolymorphicEmbed
+
+            typed_schema "disabled_polymorphic" do
+              polymorphic_embeds_one(:form,
+                types: [sms: TypedEctoSchemaTest.PolymorphicSms],
+                on_replace: :update
+              )
+            end
+
+            def get_types, do: Enum.reverse(@__typed_ecto_schema_types__)
+          end
+        end
+      )
+
+    types =
+      quote do
+        [
+          __meta__: unquote(Metadata).t(),
+          id: integer() | nil,
+          form: PolymorphicEmbed.t() | nil
+        ]
+      end
+
+    assert delete_context(module.get_types()) == delete_context(types)
+  end
+
+  test "with the flag disabled, apply_to_block leaves polymorphic calls alone" do
+    disable_polymorphic_embed()
+
+    one = {:polymorphic_embeds_one, [], [:form, [types: []]]}
+
+    many_with_type =
+      {:"::", [], [{:polymorphic_embeds_many, [], [:forms, [types: []]]}, {:map, [], []}]}
+
+    block = {:__block__, [], [one, many_with_type]}
+
+    assert TypedEctoSchema.SyntaxSugar.apply_to_block(block, __ENV__) ==
+             {:__block__, [], [one, many_with_type]}
+  end
+
   ## Internal type mapping edge cases
 
   test "EctoTypeMapper infers composite, evaluated and unknown types" do
@@ -1375,6 +1456,13 @@ defmodule TypedEctoSchemaTest do
 
   defp mapped_type(ecto_type, opts \\ []) do
     delete_context(TypedEctoSchema.EctoTypeMapper.type_for(ecto_type, :field, true, opts))
+  end
+
+  # Disables the polymorphic_embed integration (enabled in test_helper.exs) for
+  # the duration of a test.
+  defp disable_polymorphic_embed do
+    Application.put_env(:typed_ecto_schema, :polymorphic_embed, false)
+    on_exit(fn -> Application.put_env(:typed_ecto_schema, :polymorphic_embed, true) end)
   end
 
   # Extracts the first type from a module.

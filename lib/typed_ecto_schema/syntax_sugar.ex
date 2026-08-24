@@ -87,26 +87,33 @@ defmodule TypedEctoSchema.SyntaxSugar do
 
   # Matches `polymorphic_embeds_one/2` and `polymorphic_embeds_many/2` from the
   # `polymorphic_embed` library purely by name, so it never becomes a dependency.
-  # The original call is emitted untouched (minus our extra options) so the real
-  # macro still runs.
-  defp transform_expression({function_name, _, [name, opts]} = expr, _env)
+  # Because of that, the integration is gated behind a compile-time flag and
+  # off by default, in case another library defines same-named macros with
+  # different behavior. The original call is emitted untouched (minus our extra
+  # options) so the real macro still runs.
+  defp transform_expression({function_name, _, [name, opts]} = expr, env)
        when function_name in @polymorphic_embeds_function_names do
-    if Keyword.keyword?(opts) do
-      ecto_opts = Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null])
+    cond do
+      not polymorphic_embed_enabled?(env) ->
+        expand_expression(expr, env)
 
-      quote do
-        unquote(function_name)(unquote(name), unquote(ecto_opts))
+      Keyword.keyword?(opts) ->
+        ecto_opts = Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null])
 
-        unquote(TypeBuilder).add_field(
-          __MODULE__,
-          unquote(function_name),
-          unquote(name),
-          unquote(Macro.escape(polymorphic_embeds_type(opts))),
-          unquote(Keyword.take(opts, [:__typed_ecto_type__, :enforce, :null, :default]))
-        )
-      end
-    else
-      expr
+        quote do
+          unquote(function_name)(unquote(name), unquote(ecto_opts))
+
+          unquote(TypeBuilder).add_field(
+            __MODULE__,
+            unquote(function_name),
+            unquote(name),
+            unquote(Macro.escape(polymorphic_embeds_type(opts))),
+            unquote(Keyword.take(opts, [:__typed_ecto_type__, :enforce, :null, :default]))
+          )
+        end
+
+      true ->
+        expr
     end
   end
 
@@ -189,13 +196,18 @@ defmodule TypedEctoSchema.SyntaxSugar do
 
   defp transform_expression({:"::", _, [{function_name, _, [name, opts]}, type]} = expr, env)
        when function_name in @polymorphic_embeds_function_names do
-    if Keyword.keyword?(opts) do
-      transform_expression(
-        {function_name, [], [name, [{:__typed_ecto_type__, Macro.escape(type)} | opts]]},
-        env
-      )
-    else
-      expr
+    cond do
+      not polymorphic_embed_enabled?(env) ->
+        expand_expression(expr, env)
+
+      Keyword.keyword?(opts) ->
+        transform_expression(
+          {function_name, [], [name, [{:__typed_ecto_type__, Macro.escape(type)} | opts]]},
+          env
+        )
+
+      true ->
+        expr
     end
   end
 
@@ -207,6 +219,10 @@ defmodule TypedEctoSchema.SyntaxSugar do
   end
 
   defp transform_expression(unknown, env) do
+    expand_expression(unknown, env)
+  end
+
+  defp expand_expression(unknown, env) do
     expanded = Macro.expand(unknown, env)
 
     case expanded do
@@ -220,6 +236,12 @@ defmodule TypedEctoSchema.SyntaxSugar do
       call ->
         transform_expression(call, env)
     end
+  end
+
+  # Reads the flag at the user's compile time. `Application.compile_env/4`
+  # registers the read so schemas get recompiled when the config changes.
+  defp polymorphic_embed_enabled?(env) do
+    Application.compile_env(env, :typed_ecto_schema, :polymorphic_embed, false)
   end
 
   # Infers the typespec for a polymorphic embed from the `:types` option AST,
