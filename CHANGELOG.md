@@ -25,9 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Compilation crash (`FunctionClauseError`) for `Ecto.Enum` fields with empty or
   non-literal `:values`: a `::` type override now always takes precedence over
-  inference, an empty `values: []` without an override raises a clear error, and
-  non-literal values fall back to `atom()`
-  ([#62](https://github.com/bamorim/typed_ecto_schema/pull/62), closes
+  inference, and empty or non-literal values fall back to `any()` instead of
+  crashing ([#62](https://github.com/bamorim/typed_ecto_schema/pull/62), closes
   [#57](https://github.com/bamorim/typed_ecto_schema/issues/57))
 - Deprecation warnings and dependency incompatibilities on Elixir 1.19/1.20
   (`preferred_cli_env` moved to `def cli`, credo updated), thanks @saleyn
