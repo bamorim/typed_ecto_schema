@@ -79,6 +79,64 @@ have a non-nullable (and/or enforced) primary key type:
 
 Check the [online documentation](https://hexdocs.pm/typed_ecto_schema) for further details.
 
+## PolymorphicEmbed support (experimental)
+
+[`polymorphic_embed`](https://github.com/mathieuprog/polymorphic_embed)'s
+`polymorphic_embeds_one/2` and `polymorphic_embeds_many/2` are supported inside
+`typed_schema` blocks behind a compile-time flag, disabled by default:
+
+```elixir
+# config/config.exs
+config :typed_ecto_schema, polymorphic_embed: true
+```
+
+The calls are recognized purely by name (so `polymorphic_embed` never becomes a dependency
+of this library) — the flag exists because another library could define same-named macros
+with different behavior, so only enable it if you use `polymorphic_embed`. With the flag
+disabled the calls behave exactly as before. The flag must live in compile-time config
+(`config.exs`, not `runtime.exs`) and requires Elixir 1.14+. This integration is
+experimental and may change in a future release.
+
+Once enabled, the typespec is inferred as the union of the modules listed in the
+`:types` option:
+
+```elixir
+defmodule Reminder do
+  use TypedEctoSchema
+
+  import PolymorphicEmbed
+
+  typed_schema "reminders" do
+    polymorphic_embeds_one(:channel,
+      types: [sms: SMS, email: Email],
+      on_replace: :update
+    )
+  end
+end
+```
+
+This generates `channel: (SMS.t() | Email.t()) | nil`, while `polymorphic_embeds_many`
+generates a list of the union instead. The `::` type override and the `:null` and `:enforce`
+options work just like they do for `field/3` (and are stripped before the real
+`polymorphic_embed` macro runs):
+
+```elixir
+# SMS.t() | Email.t() (without `| nil`), and :channel is added to @enforce_keys
+polymorphic_embeds_one(:channel,
+  types: [sms: SMS, email: Email],
+  on_replace: :update,
+  null: false,
+  enforce: true
+)
+```
+
+As with `embeds_many`, `:null` has no effect on `polymorphic_embeds_many`, since it is
+always initialized to an empty list. When the `:types` option cannot be resolved at
+compile time (for example, when it is a module attribute), the type falls back to `any()`.
+
+Since `polymorphic_embed` is not a dependency of this library, you still need to add it to
+your own deps and import it in your schema modules yourself.
+
 ## Credits
 
 This project started as a fork of the awesome [`typed_struct`].

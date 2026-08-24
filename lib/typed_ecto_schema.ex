@@ -126,6 +126,65 @@ defmodule TypedEctoSchema do
 
   And then have a `non_neg_integer()` type for it.
 
+  ## Integration with PolymorphicEmbed (experimental)
+
+  The `polymorphic_embeds_one/2` and `polymorphic_embeds_many/2` macros from the
+  [`polymorphic_embed`](https://hexdocs.pm/polymorphic_embed) library are supported behind a
+  compile-time flag, disabled by default:
+
+      # config/config.exs
+      config :typed_ecto_schema, polymorphic_embed: true
+
+  The integration recognizes the calls purely by name (so that `polymorphic_embed` never
+  becomes a dependency of this library). The flag exists because another library could define
+  same-named macros with different behavior, which the integration would then break — enable
+  it only if you use `polymorphic_embed`. With the flag disabled, these calls behave exactly
+  as they did before the integration existed. The flag is read at compile time via
+  `Application.compile_env/4`, so it must be set in compile-time config (`config.exs`, not
+  `runtime.exs`) and requires Elixir 1.14+. This integration is experimental and its behavior
+  may change in a future release.
+
+  Once enabled, the typespec is inferred as the union of the modules listed in the `:types`
+  option:
+
+      typed_schema "reminders" do
+        polymorphic_embeds_one(:channel,
+          types: [sms: SMS, email: Email],
+          on_replace: :update
+        )
+      end
+
+  This generates `channel: (SMS.t() | Email.t()) | nil`. `polymorphic_embeds_many/2` generates
+  a list of the union instead (and, as usual for "many" fields, never receives `| nil`). Both
+  the `types: [name: Module]` and the `types: [name: [module: Module, ...]]` forms are
+  supported, as are the `::` type override and the `:null` and `:enforce` options:
+
+      polymorphic_embeds_one(:channel,
+        types: [sms: SMS, email: Email],
+        on_replace: :update
+      ) :: SMS.t() | Email.t()
+
+  `:null` and `:enforce` behave exactly like they do for `field/3` (and are stripped before
+  the real `polymorphic_embed` macro runs, since it rejects unknown options). So the
+  following generates a `SMS.t() | Email.t()` typespec (without `| nil`) and adds `:channel`
+  to `@enforce_keys`:
+
+      polymorphic_embeds_one(:channel,
+        types: [sms: SMS, email: Email],
+        on_replace: :update,
+        null: false,
+        enforce: true
+      )
+
+  As with `embeds_many/3`, `:null` has no effect on `polymorphic_embeds_many/2`, since it is
+  always initialized to an empty list.
+
+  When the `:types` option cannot be resolved at compile time (for example, when it is a module
+  attribute), the type falls back to `any()`.
+
+  Since `polymorphic_embed` is not a dependency of this library, you still need to add it to
+  your own deps and import it in your schema modules yourself.
+
   ## Non explicit generated fields
 
   Ecto generates some fields for you in a lot of cases, they are:

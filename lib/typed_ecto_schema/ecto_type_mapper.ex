@@ -1,7 +1,9 @@
 defmodule TypedEctoSchema.EctoTypeMapper do
   @moduledoc false
 
-  @schema_many_function_name [:embeds_many, :has_many, :many_to_many]
+  @schema_many_function_name [:embeds_many, :has_many, :many_to_many, :polymorphic_embeds_many]
+
+  @polymorphic_embeds_function_names [:polymorphic_embeds_one, :polymorphic_embeds_many]
 
   @schema_assoc_function_name [
     :has_many,
@@ -9,8 +11,6 @@ defmodule TypedEctoSchema.EctoTypeMapper do
     :belongs_to,
     :many_to_many
   ]
-
-  @schema_many_assoc_function_name [:has_many, :many_to_many]
 
   @module_for_ecto_type %{
     string: String,
@@ -34,12 +34,22 @@ defmodule TypedEctoSchema.EctoTypeMapper do
           | :has_one
           | :has_many
           | :belongs_to
+          | :polymorphic_embeds_one
+          | :polymorphic_embeds_many
 
   @type field_option :: {:null, boolean()} | {:values, list(atom())}
   @type field_options :: list(field_option)
 
-  @spec type_for(Ecto.Type.t(), function_name(), boolean(), field_options()) ::
+  @spec type_for(Ecto.Type.t() | Macro.t(), function_name(), boolean(), field_options()) ::
           Macro.t()
+  def type_for(type_ast, function_name, nullable_default, opts)
+      when function_name in @polymorphic_embeds_function_names do
+    # The base type was already built from the `:types` option by the syntax sugar
+    type_ast
+    |> wrap_embeds_many(function_name)
+    |> add_nil_if_nullable(field_is_nullable?(nullable_default, function_name, opts))
+  end
+
   def type_for(ecto_type, function_name, nullable_default, opts) do
     ecto_type
     |> base_type_for(opts)
@@ -197,7 +207,8 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   end
 
   @spec wrap_embeds_many(Macro.t(), function_name()) :: Macro.t()
-  defp wrap_embeds_many(type, :embeds_many) do
+  defp wrap_embeds_many(type, function_name)
+       when function_name in [:embeds_many, :polymorphic_embeds_many] do
     quote do
       list(unquote(type))
     end
@@ -221,10 +232,6 @@ defmodule TypedEctoSchema.EctoTypeMapper do
   defp field_is_nullable?(_default, function_name, _opts)
        when function_name in @schema_many_function_name,
        do: false
-
-  defp field_is_nullable?(_default, function_name, _args)
-       when function_name in @schema_many_assoc_function_name,
-       do: true
 
   defp field_is_nullable?(default, _function_name, opts),
     do: Keyword.get(opts, :null, default)

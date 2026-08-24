@@ -11,6 +11,8 @@ defmodule TypedEctoSchema.TypeBuilder do
           | :has_many
           | :belongs_to
           | :many_to_many
+          | :polymorphic_embeds_one
+          | :polymorphic_embeds_many
 
   @typep schema_option ::
            {:null, boolean()}
@@ -145,7 +147,7 @@ defmodule TypedEctoSchema.TypeBuilder do
           module(),
           function_name(),
           atom(),
-          Ecto.Type.t(),
+          Ecto.Type.t() | Macro.t(),
           field_options()
         ) :: :ok
   def add_field(mod, function_name, name, ecto_type, field_opts)

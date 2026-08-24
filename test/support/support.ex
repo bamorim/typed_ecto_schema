@@ -14,3 +14,16 @@ defmodule TypedEctoSchema.TestMacros do
     end
   end
 end
+
+defmodule TypedEctoSchema.OtherPolymorphicLib do
+  @moduledoc false
+  # Simulates an unrelated library that happens to define macros with the same
+  # names as polymorphic_embed's, but with different behavior (here they even
+  # consume the `:null` option themselves).
+
+  defmacro polymorphic_embeds_one(name, opts) do
+    quote do
+      field(unquote(name), :string, unquote(opts))
+    end
+  end
+end
