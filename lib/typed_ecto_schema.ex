@@ -164,6 +164,21 @@ defmodule TypedEctoSchema do
         on_replace: :update
       ) :: SMS.t() | Email.t()
 
+  `:null` and `:enforce` behave exactly like they do for `field/3` (and are stripped before
+  the real `polymorphic_embed` macro runs, since it rejects unknown options). So the
+  following generates a `SMS.t() | Email.t()` typespec (without `| nil`) and adds `:channel`
+  to `@enforce_keys`:
+
+      polymorphic_embeds_one(:channel,
+        types: [sms: SMS, email: Email],
+        on_replace: :update,
+        null: false,
+        enforce: true
+      )
+
+  As with `embeds_many/3`, `:null` has no effect on `polymorphic_embeds_many/2`, since it is
+  always initialized to an empty list.
+
   When the `:types` option cannot be resolved at compile time (for example, when it is a module
   attribute), the type falls back to `any()`.
 

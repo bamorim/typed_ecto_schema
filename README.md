@@ -117,7 +117,21 @@ end
 
 This generates `channel: (SMS.t() | Email.t()) | nil`, while `polymorphic_embeds_many`
 generates a list of the union instead. The `::` type override and the `:null` and `:enforce`
-options work just like they do for `field/3`. When the `:types` option cannot be resolved at
+options work just like they do for `field/3` (and are stripped before the real
+`polymorphic_embed` macro runs):
+
+```elixir
+# SMS.t() | Email.t() (without `| nil`), and :channel is added to @enforce_keys
+polymorphic_embeds_one(:channel,
+  types: [sms: SMS, email: Email],
+  on_replace: :update,
+  null: false,
+  enforce: true
+)
+```
+
+As with `embeds_many`, `:null` has no effect on `polymorphic_embeds_many`, since it is
+always initialized to an empty list. When the `:types` option cannot be resolved at
 compile time (for example, when it is a module attribute), the type falls back to `any()`.
 
 Since `polymorphic_embed` is not a dependency of this library, you still need to add it to
