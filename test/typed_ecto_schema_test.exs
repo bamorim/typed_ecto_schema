@@ -1539,7 +1539,8 @@ defmodule TypedEctoSchemaTest do
 
   test "silently skips enum fields whose values are not statically resolvable" do
     # Simulates `:values` reaching the builder as unevaluated AST
-    # (e.g. through a macro escaping its options).
+    # (e.g. through a macro escaping its options) or as values `Ecto.Enum`
+    # itself would reject, like a list of integers.
     defmodule UnresolvableValues do
       require TypedEctoSchema.TypeBuilder
 
@@ -1551,6 +1552,14 @@ defmodule TypedEctoSchemaTest do
         :status,
         Ecto.Enum,
         values: {:@, [], [{:role_values, [], nil}]}
+      )
+
+      TypedEctoSchema.TypeBuilder.add_field(
+        __MODULE__,
+        :field,
+        :not_atoms,
+        Ecto.Enum,
+        values: [1, 2, 3]
       )
 
       def additional_types, do: @__typed_ecto_schema_additional_types__
