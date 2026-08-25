@@ -77,7 +77,7 @@ have a non-nullable (and/or enforced) primary key type:
 @primary_key {:id, :binary_id, autogenerate: true, null: false}
 ```
 
-### Named types for `Ecto.Enum` fields (experimental)
+### Additional named types (experimental)
 
 > **Note:** this feature is experimental and its behavior may change in future releases.
 
@@ -100,6 +100,19 @@ This defines `@type role() :: :admin | :user`, which can be referenced from othe
 and `{:array, Ecto.Enum}` fields generate the union of the element values. Fields whose values
 can't be resolved at compile time and fields named `t` (which would conflict with the schema's
 own `t/0`) are silently skipped; other name collisions with existing types error at compile time.
+
+It can also be enabled globally through compile-time application config (the schema-level
+option still wins in both directions):
+
+```elixir
+# config/config.exs
+config :typed_ecto_schema, additional_types: true
+```
+
+When the PolymorphicEmbed integration is enabled (see below), `polymorphic_embeds_one/2` and
+`polymorphic_embeds_many/2` fields also generate a named type with the union of the modules in
+their `types:` option — e.g. `polymorphic_embeds_one(:channel, types: [sms: SMS, email: Email])`
+defines `@type channel() :: SMS.t() | Email.t()`.
 
 Check the [online documentation](https://hexdocs.pm/typed_ecto_schema) for further details.
 

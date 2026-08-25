@@ -97,17 +97,18 @@ defmodule TypedEctoSchema do
     enforced field.
   - `:opaque` - When `true` makes the generated type `t` be an opaque type.
   - `:additional_types` - (Experimental) When `true`, defines a public named type for each
-    `Ecto.Enum` field, which can be referenced from other modules' specs. Default is `false`.
+    `Ecto.Enum` and polymorphic embed field, which can be referenced from other modules' specs.
+    Default is `false`, or the value of the `:additional_types` application config when set.
     See the section below.
 
-  ## Named Types for Ecto.Enum Fields (Experimental)
+  ## Additional Named Types (Experimental)
 
   > #### Experimental {: .warning}
   >
   > This feature is experimental and its behavior may change in future releases.
 
-  When the schema-level `:additional_types` option is enabled, each `Ecto.Enum` field generates a
-  public type named after the field, containing the union of its values:
+  When the `:additional_types` option is enabled, each `Ecto.Enum` field generates a public type
+  named after the field, containing the union of its values:
 
       defmodule Person do
         use TypedEctoSchema
@@ -124,10 +125,35 @@ defmodule TypedEctoSchema do
   (`:foo | :bar`). For `{:array, Ecto.Enum}` fields the named type is also the union of the
   element values, since that is what is useful in other specs.
 
+  Instead of enabling it per schema, it can also be enabled globally through compile-time
+  application config, with the schema-level option still taking precedence in both directions:
+
+      # config/config.exs
+      config :typed_ecto_schema, additional_types: true
+
+  Like the `:polymorphic_embed` flag (see below), it is read via `Application.compile_env/4`, so
+  it must be set in compile-time config (`config.exs`, not `runtime.exs`).
+
+  When the PolymorphicEmbed integration is enabled (see the section below),
+  `polymorphic_embeds_one/2` and `polymorphic_embeds_many/2` fields also generate a named type,
+  containing the union of the modules in their `:types` option:
+
+      typed_schema "reminders", additional_types: true do
+        polymorphic_embeds_one(:channel,
+          types: [sms: SMS, email: Email],
+          on_replace: :update
+        )
+      end
+
+  This defines `@type channel() :: SMS.t() | Email.t()`. As with `{:array, Ecto.Enum}`,
+  `polymorphic_embeds_many/2` also generates the union of the element types (without the
+  `list(...)` wrapper).
+
   Some fields are silently skipped:
 
-  - non-`Ecto.Enum` fields;
-  - fields whose `:values` cannot be resolved to a list of atoms at compile time;
+  - fields that are neither `Ecto.Enum` nor polymorphic embeds;
+  - `Ecto.Enum` fields whose `:values` cannot be resolved to a list of atoms at compile time;
+  - polymorphic embed fields whose `:types` modules cannot be resolved at compile time;
   - fields named `t`, since the type would conflict with the schema's own `t/0`.
 
   Note that a generated type can still collide with another type defined in the module (a field

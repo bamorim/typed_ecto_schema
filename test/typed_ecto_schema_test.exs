@@ -1553,10 +1553,99 @@ defmodule TypedEctoSchemaTest do
         values: {:@, [], [{:role_values, [], nil}]}
       )
 
-      def enum_types, do: @__typed_ecto_schema_enum_types__
+      def additional_types, do: @__typed_ecto_schema_additional_types__
     end
 
-    assert UnresolvableValues.enum_types() == []
+    assert UnresolvableValues.additional_types() == []
+  end
+
+  test "the additional_types default can be enabled globally via application config" do
+    enable_global_additional_types()
+
+    {:module, _name, bytecode, _exports} =
+      defmodule GloballyEnabledAdditionalTypes do
+        use TypedEctoSchema
+
+        @primary_key false
+        typed_embedded_schema do
+          field(:status, Ecto.Enum, values: [:on, :off])
+        end
+      end
+
+    assert {:type, delete_context(quote(do: status() :: :on | :off))} in extract_all_types(
+             bytecode
+           )
+  end
+
+  test "the schema-level additional_types option overrides the global config" do
+    enable_global_additional_types()
+
+    {:module, _name, bytecode, _exports} =
+      defmodule GloballyEnabledButLocallyDisabled do
+        use TypedEctoSchema
+
+        @primary_key false
+        typed_embedded_schema additional_types: false do
+          field(:status, Ecto.Enum, values: [:on, :off])
+        end
+      end
+
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <- extract_all_types(bytecode), do: name
+
+    assert type_names == [:t]
+  end
+
+  {:module, _name, bytecode_polymorphic_additional_types, _exports} =
+    defmodule PolymorphicWithAdditionalTypes do
+      use TypedEctoSchema
+
+      import PolymorphicEmbed
+
+      @sms_module PolymorphicSms
+
+      @primary_key false
+      typed_schema "polymorphic_additional", additional_types: true do
+        polymorphic_embeds_one(:channel,
+          types: [sms: PolymorphicSms, email: PolymorphicEmail],
+          on_replace: :update
+        )
+
+        polymorphic_embeds_many(:channels,
+          types: [sms: PolymorphicSms, email: PolymorphicEmail],
+          on_replace: :delete
+        )
+
+        polymorphic_embeds_one(:unresolvable,
+          types: [sms: [module: @sms_module]],
+          on_replace: :update
+        )
+      end
+    end
+
+  @bytecode_polymorphic_additional_types bytecode_polymorphic_additional_types
+
+  test "generates named types for polymorphic embeds" do
+    assert {:type,
+            delete_context(
+              quote(do: channel() :: unquote(PolymorphicSms).t() | unquote(PolymorphicEmail).t())
+            )} in extract_all_types(@bytecode_polymorphic_additional_types)
+  end
+
+  test "generates the element union as named type for polymorphic_embeds_many" do
+    assert {:type,
+            delete_context(
+              quote(do: channels() :: unquote(PolymorphicSms).t() | unquote(PolymorphicEmail).t())
+            )} in extract_all_types(@bytecode_polymorphic_additional_types)
+  end
+
+  test "does not generate named types for polymorphic embeds with unresolvable types" do
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <-
+            extract_all_types(@bytecode_polymorphic_additional_types),
+          do: name
+
+    refute :unresolvable in type_names
   end
 
   ##
@@ -1572,6 +1661,12 @@ defmodule TypedEctoSchemaTest do
   defp disable_polymorphic_embed do
     Application.put_env(:typed_ecto_schema, :polymorphic_embed, false)
     on_exit(fn -> Application.put_env(:typed_ecto_schema, :polymorphic_embed, true) end)
+  end
+
+  # Enables the global additional_types default for the duration of a test.
+  defp enable_global_additional_types do
+    Application.put_env(:typed_ecto_schema, :additional_types, true)
+    on_exit(fn -> Application.delete_env(:typed_ecto_schema, :additional_types) end)
   end
 
   # Extracts the first type from a module.

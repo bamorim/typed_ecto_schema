@@ -29,7 +29,10 @@ defmodule TypedEctoSchema.TypeBuilder do
   @default_schema_opts null: true, enforce: false, opaque: false, additional_types: false
 
   defmacro init(schema_opts) do
-    schema_opts = Keyword.merge(@default_schema_opts, schema_opts)
+    schema_opts =
+      @default_schema_opts
+      |> Keyword.merge(additional_types: global_additional_types(__CALLER__))
+      |> Keyword.merge(schema_opts)
 
     quote do
       Module.register_attribute(
@@ -46,7 +49,7 @@ defmodule TypedEctoSchema.TypeBuilder do
 
       Module.register_attribute(
         __MODULE__,
-        :__typed_ecto_schema_enum_types__,
+        :__typed_ecto_schema_additional_types__,
         accumulate: true
       )
 
@@ -71,16 +74,23 @@ defmodule TypedEctoSchema.TypeBuilder do
         unquote(schema_opts)
       )
 
-      unquote(__MODULE__).__define_enum_types__(@__typed_ecto_schema_enum_types__)
+      unquote(__MODULE__).__define_additional_types__(@__typed_ecto_schema_additional_types__)
     end
   end
 
-  defmacro __define_enum_types__(enum_types) do
-    quote bind_quoted: [enum_types: enum_types] do
-      for {name, type} <- Enum.reverse(enum_types) do
+  defmacro __define_additional_types__(additional_types) do
+    quote bind_quoted: [additional_types: additional_types] do
+      for {name, type} <- Enum.reverse(additional_types) do
         @type unquote(name)() :: unquote(type)
       end
     end
+  end
+
+  # Reads the global default for the `:additional_types` schema option at the
+  # user's compile time. `Application.compile_env/4` registers the read so
+  # schemas get recompiled when the config changes.
+  defp global_additional_types(env) do
+    Application.compile_env(env, :typed_ecto_schema, :additional_types, false)
   end
 
   defmacro __define_type__(types, schema_opts) do
@@ -195,7 +205,7 @@ defmodule TypedEctoSchema.TypeBuilder do
       do: Module.put_attribute(mod, :__typed_ecto_schema_enforced_keys__, name)
 
     if Keyword.get(schema_opts, :additional_types, false),
-      do: add_enum_type(mod, name, ecto_type, field_opts)
+      do: add_additional_type(mod, function_name, name, ecto_type, field_opts)
 
     if function_name == :belongs_to and
          Keyword.get(field_opts, :define_field, true) do
@@ -215,13 +225,32 @@ defmodule TypedEctoSchema.TypeBuilder do
     raise ArgumentError, "a field name must be an atom, got #{inspect(name)}"
   end
 
+  @polymorphic_embeds_function_names [:polymorphic_embeds_one, :polymorphic_embeds_many]
+
   # Fields named `t` are skipped since the type would collide with the schema's own `t/0`.
-  @spec add_enum_type(module(), atom(), Ecto.Type.t(), field_options()) :: :ok
-  defp add_enum_type(mod, name, ecto_type, field_opts) do
+  @spec add_additional_type(
+          module(),
+          function_name(),
+          atom(),
+          Ecto.Type.t() | Macro.t(),
+          field_options()
+        ) :: :ok
+  defp add_additional_type(mod, function_name, name, type_ast, _field_opts)
+       when function_name in @polymorphic_embeds_function_names do
+    # The syntax sugar already built the union of the `:types` modules;
+    # `any()` means it was not statically resolvable, so we skip it.
+    unless name == :t or match?({:any, _, _}, type_ast) do
+      Module.put_attribute(mod, :__typed_ecto_schema_additional_types__, {name, type_ast})
+    end
+
+    :ok
+  end
+
+  defp add_additional_type(mod, _function_name, name, ecto_type, field_opts) do
     if name != :t and enum_type?(ecto_type) do
       case enum_values_type(Keyword.get(field_opts, :values)) do
         {:ok, type} ->
-          Module.put_attribute(mod, :__typed_ecto_schema_enum_types__, {name, type})
+          Module.put_attribute(mod, :__typed_ecto_schema_additional_types__, {name, type})
 
         :error ->
           :ok
