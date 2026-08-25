@@ -1450,6 +1450,213 @@ defmodule TypedEctoSchemaTest do
     end
   end
 
+  ## Additional types for Ecto.Enum fields (issue #39)
+
+  {:module, _name, bytecode_additional_types, _exports} =
+    defmodule WithAdditionalTypes do
+      use TypedEctoSchema
+
+      @role_values [:admin, :user]
+
+      @primary_key false
+      typed_schema "table", additional_types: true do
+        field(:simple, Ecto.Enum, values: [:foo, :bar])
+        field(:keyed, Ecto.Enum, values: [one: 1, two: 2])
+        field(:array, {:array, Ecto.Enum}, values: [:a, :b])
+        field(:from_attribute, Ecto.Enum, values: @role_values)
+        field(:t, Ecto.Enum, values: [:skipped])
+        field(:not_enum, :integer)
+      end
+    end
+
+  {:module, _name, bytecode_embedded_additional_types, _exports} =
+    defmodule EmbeddedWithAdditionalTypes do
+      use TypedEctoSchema
+
+      @primary_key false
+      typed_embedded_schema additional_types: true do
+        field(:status, Ecto.Enum, values: [:on, :off])
+      end
+    end
+
+  @bytecode_additional_types bytecode_additional_types
+  @bytecode_embedded_additional_types bytecode_embedded_additional_types
+
+  test "generates named types for enum fields when additional_types is enabled" do
+    assert {:type, delete_context(quote(do: simple() :: :foo | :bar))} in extract_all_types(
+             @bytecode_additional_types
+           )
+  end
+
+  test "generates the union of keys as named type for keyed enum values" do
+    assert {:type, delete_context(quote(do: keyed() :: :one | :two))} in extract_all_types(
+             @bytecode_additional_types
+           )
+  end
+
+  test "generates the element union as named type for arrays of enums" do
+    assert {:type, delete_context(quote(do: array() :: :a | :b))} in extract_all_types(
+             @bytecode_additional_types
+           )
+  end
+
+  test "generates named types for enum values resolved from module attributes" do
+    assert {:type, delete_context(quote(do: from_attribute() :: :admin | :user))} in extract_all_types(
+             @bytecode_additional_types
+           )
+  end
+
+  test "does not generate a named type for enum fields named t" do
+    # If a `t` type was generated for the field it would conflict with the
+    # schema's own `t/0` and the module wouldn't even compile.
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <- extract_all_types(@bytecode_additional_types),
+          do: name
+
+    assert Enum.count(type_names, &(&1 == :t)) == 1
+  end
+
+  test "does not generate named types for non-enum fields" do
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <- extract_all_types(@bytecode_additional_types),
+          do: name
+
+    refute :not_enum in type_names
+  end
+
+  test "generates named types for enum fields on typed_embedded_schema" do
+    assert {:type, delete_context(quote(do: status() :: :on | :off))} in extract_all_types(
+             @bytecode_embedded_additional_types
+           )
+  end
+
+  test "does not generate named types for enum fields by default" do
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <- extract_all_types(@bytecode), do: name
+
+    assert type_names == [:t]
+  end
+
+  test "silently skips enum fields whose values are not statically resolvable" do
+    # Simulates `:values` reaching the builder as unevaluated AST
+    # (e.g. through a macro escaping its options) or as values `Ecto.Enum`
+    # itself would reject, like a list of integers.
+    defmodule UnresolvableValues do
+      require TypedEctoSchema.TypeBuilder
+
+      TypedEctoSchema.TypeBuilder.init(additional_types: true)
+
+      TypedEctoSchema.TypeBuilder.add_field(
+        __MODULE__,
+        :field,
+        :status,
+        Ecto.Enum,
+        values: {:@, [], [{:role_values, [], nil}]}
+      )
+
+      TypedEctoSchema.TypeBuilder.add_field(
+        __MODULE__,
+        :field,
+        :not_atoms,
+        Ecto.Enum,
+        values: [1, 2, 3]
+      )
+
+      def additional_types, do: @__typed_ecto_schema_additional_types__
+    end
+
+    assert UnresolvableValues.additional_types() == []
+  end
+
+  test "the additional_types default can be enabled globally via application config" do
+    enable_global_additional_types()
+
+    {:module, _name, bytecode, _exports} =
+      defmodule GloballyEnabledAdditionalTypes do
+        use TypedEctoSchema
+
+        @primary_key false
+        typed_embedded_schema do
+          field(:status, Ecto.Enum, values: [:on, :off])
+        end
+      end
+
+    assert {:type, delete_context(quote(do: status() :: :on | :off))} in extract_all_types(
+             bytecode
+           )
+  end
+
+  test "the schema-level additional_types option overrides the global config" do
+    enable_global_additional_types()
+
+    {:module, _name, bytecode, _exports} =
+      defmodule GloballyEnabledButLocallyDisabled do
+        use TypedEctoSchema
+
+        @primary_key false
+        typed_embedded_schema additional_types: false do
+          field(:status, Ecto.Enum, values: [:on, :off])
+        end
+      end
+
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <- extract_all_types(bytecode), do: name
+
+    assert type_names == [:t]
+  end
+
+  {:module, _name, bytecode_polymorphic_additional_types, _exports} =
+    defmodule PolymorphicWithAdditionalTypes do
+      use TypedEctoSchema
+
+      import PolymorphicEmbed
+
+      @sms_module PolymorphicSms
+
+      @primary_key false
+      typed_schema "polymorphic_additional", additional_types: true do
+        polymorphic_embeds_one(:channel,
+          types: [sms: PolymorphicSms, email: PolymorphicEmail],
+          on_replace: :update
+        )
+
+        polymorphic_embeds_many(:channels,
+          types: [sms: PolymorphicSms, email: PolymorphicEmail],
+          on_replace: :delete
+        )
+
+        polymorphic_embeds_one(:unresolvable,
+          types: [sms: [module: @sms_module]],
+          on_replace: :update
+        )
+      end
+    end
+
+  @bytecode_polymorphic_additional_types bytecode_polymorphic_additional_types
+
+  test "generates named types for polymorphic embeds" do
+    assert {:type,
+            delete_context(
+              quote(do: channel() :: unquote(PolymorphicSms).t() | unquote(PolymorphicEmail).t())
+            )} in extract_all_types(@bytecode_polymorphic_additional_types)
+  end
+
+  test "generates the element union as named type for polymorphic_embeds_many" do
+    assert {:type,
+            delete_context(
+              quote(do: channels() :: unquote(PolymorphicSms).t() | unquote(PolymorphicEmail).t())
+            )} in extract_all_types(@bytecode_polymorphic_additional_types)
+  end
+
+  test "does not generate named types for polymorphic embeds with unresolvable types" do
+    type_names =
+      for {_kind, {:"::", _, [{name, _, _} | _]}} <-
+            extract_all_types(@bytecode_polymorphic_additional_types),
+          do: name
+
+    refute :unresolvable in type_names
+  end
+
   ##
   ## Helpers
   ##
@@ -1465,11 +1672,26 @@ defmodule TypedEctoSchemaTest do
     on_exit(fn -> Application.put_env(:typed_ecto_schema, :polymorphic_embed, true) end)
   end
 
+  # Enables the global additional_types default for the duration of a test.
+  defp enable_global_additional_types do
+    Application.put_env(:typed_ecto_schema, :additional_types, true)
+    on_exit(fn -> Application.delete_env(:typed_ecto_schema, :additional_types) end)
+  end
+
   # Extracts the first type from a module.
   defp extract_first_type(bytecode, type_keyword \\ :type) do
     case Code.Typespec.fetch_types(bytecode) do
       {:ok, types} -> Keyword.get(types, type_keyword)
       _ -> nil
+    end
+  end
+
+  # Extracts all types from a module as context-free quoted expressions.
+  defp extract_all_types(bytecode) do
+    {:ok, types} = Code.Typespec.fetch_types(bytecode)
+
+    for {kind, type} <- types do
+      {kind, delete_context(Code.Typespec.type_to_quoted(type))}
     end
   end
 
