@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `polymorphic_embed` does not become a dependency — the calls are matched by
   name ([#64](https://github.com/bamorim/typed_ecto_schema/pull/64), closes
   [#40](https://github.com/bamorim/typed_ecto_schema/issues/40))
+- When both experimental features above are enabled, polymorphic embed fields
+  also get a named type with the union of their `:types` modules, e.g.
+  `@type channel() :: SMS.t() | Email.t()` (the element union for
+  `polymorphic_embeds_many`; skipped when the types are not statically
+  resolvable)
 
 ## [0.4.4] - 2026-08-24
 
