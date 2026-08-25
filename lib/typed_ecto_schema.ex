@@ -80,6 +80,9 @@ defmodule TypedEctoSchema do
     `has_one/3` because it can always be `nil`. On `belongs_to/3` only add `| nil` to the
     underlying foreign key.
   - `:enforce` - when `true` adds the field to the `@enforce_keys`. Default is `false`
+  - `:doc` - a documentation string for the field, rendered into the `@moduledoc` when it
+    contains the fields marker (see the "Documenting Fields" section below). It is always
+    stripped before the underlying Ecto macro runs.
 
   ## Schema Options
 
@@ -160,6 +163,76 @@ defmodule TypedEctoSchema do
   named after a user-defined type, or after a built-in type such as `node`). In that case the
   compiler errors naturally with a "type is already defined" message and you can either rename
   the field or disable the option and define the type manually.
+
+  ## Documenting Fields
+
+  Fields accept a `:doc` option with a documentation string. To render the collected docs,
+  put the `<!-- typed_ecto_schema: fields -->` marker anywhere in the module's `@moduledoc`
+  and it is replaced at compile time with a markdown list describing every field:
+
+      defmodule Person do
+        @moduledoc \"\"\"
+        A person.
+
+        ## Fields
+
+        <!-- typed_ecto_schema: fields -->
+        \"\"\"
+
+        use TypedEctoSchema
+
+        typed_schema "people" do
+          field(:name, :string, null: false, doc: "The person's full name")
+          field(:age, :integer)
+        end
+      end
+
+  This generates documentation equivalent to:
+
+      @moduledoc \"\"\"
+      A person.
+
+      ## Fields
+
+      - `id` (`integer() | nil`)
+      - `name`: The person's full name (`String.t()`)
+      - `age` (`integer() | nil`)
+      \"\"\"
+
+  Some details:
+
+  - The marker is the only trigger: without it (or without a `@moduledoc`), the `:doc`
+    options are simply ignored. Since the marker is an HTML comment, it is invisible in
+    rendered documentation even when left unreplaced.
+  - The marker is replaced by the list alone, without any heading, so the surrounding
+    structure (headings, placement) is entirely yours.
+  - The list includes all fields with their typespecs, whether they have a `:doc` or not,
+    including the generated ones (the primary key, `belongs_to` foreign keys and
+    timestamps). The internal `__meta__` field is skipped.
+  - The `@moduledoc` must be defined before the `typed_schema` call (its conventional
+    position at the top of the module).
+  - The `:doc` option is accepted everywhere `:null` and `:enforce` are: `field/3`,
+    associations, embeds, polymorphic embeds and the `@primary_key` attribute.
+
+  ### The generated `@typedoc`
+
+  Independently of the marker, the generated `t/0` type gets a `@typedoc` containing a
+  "Fields" heading and the same list — for the example above, equivalent to:
+
+      @typedoc \"\"\"
+      ## Fields
+
+      - `id` (`integer() | nil`)
+      - `name`: The person's full name (`String.t()`)
+      - `age` (`integer() | nil`)
+      \"\"\"
+
+  This happens for every schema, whether or not any field has a `:doc`, so field docs are
+  never lost: they show up in `t Person.t()` in IEx, on hover in editors, and on the type
+  itself in the generated documentation. It only happens when the module defines no
+  `@typedoc` of its own: a `@typedoc` defined before the schema block is kept (with the
+  marker interpolated in it the same way as in the `@moduledoc`), and `@typedoc false` is
+  respected.
 
   ## Type Inference
 

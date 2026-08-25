@@ -77,6 +77,44 @@ have a non-nullable (and/or enforced) primary key type:
 @primary_key {:id, :binary_id, autogenerate: true, null: false}
 ```
 
+### Documenting fields
+
+Fields accept a `doc:` option. Put the `<!-- typed_ecto_schema: fields -->` marker anywhere
+in the module's `@moduledoc` and it is replaced at compile time with a markdown list of every
+field, its typespec and its doc:
+
+```elixir
+defmodule Person do
+  @moduledoc """
+  A person.
+
+  ## Fields
+
+  <!-- typed_ecto_schema: fields -->
+  """
+
+  use TypedEctoSchema
+
+  typed_schema "people" do
+    field(:name, :string, null: false, doc: "The person's full name")
+    field(:age, :integer)
+  end
+end
+```
+
+renders the marker as:
+
+```markdown
+- `id` (`integer() | nil`)
+- `name`: The person's full name (`String.t()`)
+- `age` (`integer() | nil`)
+```
+
+The marker is the only trigger — without it, `doc:` options don't touch the `@moduledoc`.
+Independently of the marker, the generated `t/0` gets a `@typedoc` with the same list (unless
+the module defines its own, which is kept and gets the same marker interpolation). See the
+[online documentation](https://hexdocs.pm/typed_ecto_schema) for the full details.
+
 ### Additional named types (experimental)
 
 > **Note:** this feature is experimental and its behavior may change in future releases.

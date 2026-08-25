@@ -1657,6 +1657,265 @@ defmodule TypedEctoSchemaTest do
     refute :unresolvable in type_names
   end
 
+  ## Field docs in the moduledoc (issue #41)
+
+  {:module, _name, bytecode_field_docs, _exports} =
+    defmodule WithFieldDocs do
+      @moduledoc """
+      A person.
+
+      ## Fields
+
+      <!-- typed_ecto_schema: fields -->
+      """
+
+      use TypedEctoSchema
+
+      @primary_key {:id, :id, autogenerate: true, doc: "The record id"}
+      typed_schema "people" do
+        field(:name, :string, null: false, doc: "The person's full name")
+        field(:age, :integer)
+      end
+    end
+
+  {:module, _name, bytecode_marker_without_field_docs, _exports} =
+    defmodule WithMarkerButNoFieldDocs do
+      @moduledoc "<!-- typed_ecto_schema: fields -->"
+
+      use TypedEctoSchema
+
+      @primary_key false
+      typed_embedded_schema do
+        field(:name, :string)
+      end
+    end
+
+  {:module, _name, bytecode_field_docs_no_marker, _exports} =
+    defmodule WithFieldDocsButNoMarker do
+      @moduledoc "A person."
+
+      use TypedEctoSchema
+
+      @primary_key false
+      typed_embedded_schema do
+        field(:name, :string, doc: "The person's full name")
+      end
+    end
+
+  {:module, _name, bytecode_field_docs_no_moduledoc, _exports} =
+    defmodule WithFieldDocsButNoModuledoc do
+      use TypedEctoSchema
+
+      @primary_key false
+      typed_embedded_schema do
+        field(:name, :string, doc: "The person's full name")
+      end
+    end
+
+  {:module, _name, bytecode_field_docs_hidden, _exports} =
+    defmodule WithFieldDocsButHiddenModuledoc do
+      @moduledoc false
+
+      use TypedEctoSchema
+
+      @primary_key false
+      typed_embedded_schema do
+        field(:name, :string, doc: "The person's full name")
+      end
+    end
+
+  {:module, _name, bytecode_field_docs_assoc, _exports} =
+    defmodule WithFieldDocsAssoc do
+      @moduledoc "<!-- typed_ecto_schema: fields -->"
+
+      use TypedEctoSchema
+
+      @primary_key false
+      typed_schema "docs_assoc" do
+        belongs_to(:company, BelongsTo, doc: "The employer")
+        embeds_many(:embeds, Embedded, doc: "Embedded things")
+        field(:age, :integer, doc: "Age in years") :: non_neg_integer()
+      end
+    end
+
+  {:module, _name, bytecode_field_docs_polymorphic, _exports} =
+    defmodule WithFieldDocsPolymorphic do
+      @moduledoc "<!-- typed_ecto_schema: fields -->"
+
+      use TypedEctoSchema
+
+      import PolymorphicEmbed
+
+      @primary_key false
+      typed_schema "docs_polymorphic" do
+        polymorphic_embeds_one(:channel,
+          types: [sms: PolymorphicSms, email: PolymorphicEmail],
+          on_replace: :update,
+          doc: "How the person is notified"
+        )
+      end
+    end
+
+  {:module, _name, bytecode_own_typedoc, _exports} =
+    defmodule WithOwnTypedoc do
+      use TypedEctoSchema
+
+      @typedoc "My own typedoc."
+      @primary_key false
+      typed_embedded_schema do
+        field(:name, :string, doc: "The person's full name")
+      end
+    end
+
+  {:module, _name, bytecode_typedoc_marker, _exports} =
+    defmodule WithTypedocMarker do
+      use TypedEctoSchema
+
+      @typedoc """
+      My type.
+
+      <!-- typed_ecto_schema: fields -->
+      """
+      @primary_key false
+      typed_embedded_schema do
+        field(:name, :string, doc: "The person's full name")
+      end
+    end
+
+  {:module, _name, bytecode_previous_typedoc, _exports} =
+    defmodule WithTypedocOnPreviousType do
+      use TypedEctoSchema
+
+      @typedoc "A name."
+      @type name() :: String.t()
+
+      @primary_key false
+      typed_embedded_schema do
+        field(:name, :string, doc: "The person's full name")
+      end
+    end
+
+  {:module, _name, bytecode_typedoc_false, _exports} =
+    defmodule WithTypedocFalse do
+      use TypedEctoSchema
+
+      @typedoc false
+      @primary_key false
+      typed_embedded_schema do
+        field(:name, :string, doc: "The person's full name")
+      end
+    end
+
+  @bytecode_field_docs bytecode_field_docs
+  @bytecode_marker_without_field_docs bytecode_marker_without_field_docs
+  @bytecode_field_docs_no_marker bytecode_field_docs_no_marker
+  @bytecode_field_docs_no_moduledoc bytecode_field_docs_no_moduledoc
+  @bytecode_field_docs_hidden bytecode_field_docs_hidden
+  @bytecode_field_docs_assoc bytecode_field_docs_assoc
+  @bytecode_field_docs_polymorphic bytecode_field_docs_polymorphic
+  @bytecode_own_typedoc bytecode_own_typedoc
+  @bytecode_typedoc_marker bytecode_typedoc_marker
+  @bytecode_previous_typedoc bytecode_previous_typedoc
+  @bytecode_typedoc_false bytecode_typedoc_false
+
+  test "replaces the fields marker in the moduledoc with the field list" do
+    assert %{"en" => doc} = extract_moduledoc(@bytecode_field_docs)
+
+    assert doc == """
+           A person.
+
+           ## Fields
+
+           - `id`: The record id (`integer() | nil`)
+           - `name`: The person's full name (`String.t()`)
+           - `age` (`integer() | nil`)
+           """
+  end
+
+  test "replaces the marker even when no field has a doc" do
+    assert extract_moduledoc(@bytecode_marker_without_field_docs) ==
+             %{"en" => "- `name` (`String.t() | nil`)"}
+  end
+
+  test "leaves the moduledoc untouched without the marker" do
+    assert extract_moduledoc(@bytecode_field_docs_no_marker) == %{"en" => "A person."}
+  end
+
+  test "the doc option is stripped and ignored without a moduledoc" do
+    assert extract_moduledoc(@bytecode_field_docs_no_moduledoc) == :none
+  end
+
+  test "the doc option is stripped and ignored with moduledoc false" do
+    assert extract_moduledoc(@bytecode_field_docs_hidden) == :hidden
+  end
+
+  test "documents associations and embeds without copying the doc to the foreign key" do
+    assert %{"en" => doc} = extract_moduledoc(@bytecode_field_docs_assoc)
+
+    assert doc =~ ~r/^- `company`: The employer \(`.+`\)$/m
+    assert doc =~ ~r/^- `company_id` \(`integer\(\) \| nil`\)$/m
+    assert doc =~ ~r/^- `embeds`: Embedded things \(`.+`\)$/m
+    assert doc =~ ~r/^- `age`: Age in years \(`non_neg_integer\(\)`\)$/m
+  end
+
+  test "documents polymorphic embed fields" do
+    assert %{"en" => doc} = extract_moduledoc(@bytecode_field_docs_polymorphic)
+
+    assert doc =~ ~r/^- `channel`: How the person is notified \(`.+`\)$/m
+  end
+
+  test "generates a typedoc with a Fields section for t/0" do
+    assert %{"en" => doc} = extract_typedoc(@bytecode_field_docs)
+
+    assert doc == """
+           ## Fields
+
+           - `id`: The record id (`integer() | nil`)
+           - `name`: The person's full name (`String.t()`)
+           - `age` (`integer() | nil`)
+           """
+  end
+
+  test "generates the typedoc even when no field has a doc" do
+    assert extract_typedoc(@bytecode_marker_without_field_docs) ==
+             %{"en" => "## Fields\n\n- `name` (`String.t() | nil`)\n"}
+  end
+
+  test "generates the typedoc regardless of the moduledoc marker" do
+    assert extract_typedoc(@bytecode_field_docs_no_marker) ==
+             %{"en" => "## Fields\n\n- `name`: The person's full name (`String.t() | nil`)\n"}
+  end
+
+  test "keeps an open typedoc untouched when it has no marker" do
+    assert extract_typedoc(@bytecode_own_typedoc) == %{"en" => "My own typedoc."}
+  end
+
+  test "replaces the fields marker in an open typedoc" do
+    assert %{"en" => doc} = extract_typedoc(@bytecode_typedoc_marker)
+
+    assert doc == """
+           My type.
+
+           - `name`: The person's full name (`String.t() | nil`)
+           """
+  end
+
+  test "respects typedoc false" do
+    assert extract_typedoc(@bytecode_typedoc_false) == :hidden
+  end
+
+  test "a typedoc consumed by a previous type does not count as an open typedoc" do
+    assert extract_typedoc(@bytecode_previous_typedoc, :name) == %{"en" => "A name."}
+
+    assert extract_typedoc(@bytecode_previous_typedoc) ==
+             %{"en" => "## Fields\n\n- `name`: The person's full name (`String.t() | nil`)\n"}
+  end
+
+  test "the generated typedoc attaches to t/0 and not to additional types" do
+    assert %{"en" => "## Fields" <> _} = extract_typedoc(@bytecode_embedded_additional_types)
+    assert extract_typedoc(@bytecode_embedded_additional_types, :status) == :none
+  end
+
   ##
   ## Helpers
   ##
@@ -1676,6 +1935,27 @@ defmodule TypedEctoSchemaTest do
   defp enable_global_additional_types do
     Application.put_env(:typed_ecto_schema, :additional_types, true)
     on_exit(fn -> Application.delete_env(:typed_ecto_schema, :additional_types) end)
+  end
+
+  # Extracts the moduledoc from a module's bytecode.
+  defp extract_moduledoc(bytecode) do
+    {:docs_v1, _anno, :elixir, _format, moduledoc, _meta, _docs} = docs_chunk(bytecode)
+    moduledoc
+  end
+
+  # Extracts a typedoc from a module's bytecode.
+  defp extract_typedoc(bytecode, name \\ :t) do
+    {:docs_v1, _anno, :elixir, _format, _moduledoc, _meta, docs} = docs_chunk(bytecode)
+
+    Enum.find_value(docs, fn
+      {{:type, ^name, 0}, _anno, _signature, doc, _meta} -> doc
+      _ -> nil
+    end)
+  end
+
+  defp docs_chunk(bytecode) do
+    {:ok, {_module, [{~c"Docs", chunk}]}} = :beam_lib.chunks(bytecode, [~c"Docs"])
+    :erlang.binary_to_term(chunk)
   end
 
   # Extracts the first type from a module.
