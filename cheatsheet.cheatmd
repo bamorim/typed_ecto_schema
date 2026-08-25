@@ -35,6 +35,50 @@ end
 
 `typed_embedded_schema` replaces `embedded_schema`; everything else works the same.
 
+## Type inference
+{: .col-2}
+
+### Fields
+
+```elixir
+field(:name, :string)
+# String.t() | nil
+
+field(:count, :integer)
+# integer() | nil
+
+field(:tags, {:array, :string})
+# list(String.t()) | nil
+
+field(:role, Ecto.Enum, values: [:admin, :user])
+# (:admin | :user) | nil
+
+field(:price, Money)
+# Money.t() | nil — custom types assume a t/0
+```
+
+### Associations and embeds
+
+```elixir
+has_one(:profile, Profile)
+# Ecto.Schema.has_one(Profile.t()) | nil
+
+has_many(:posts, Post)
+# Ecto.Schema.has_many(Post.t())
+
+belongs_to(:company, Company)
+# company: Ecto.Schema.belongs_to(Company.t()) | nil
+# company_id: integer() | nil
+
+embeds_one(:address, Address)
+# Address.t() | nil
+
+embeds_many(:entries, Entry)
+# list(Entry.t())
+```
+
+"Many" fields are always lists — never `| nil`.
+
 ## Field options
 {: .col-2}
 
@@ -81,9 +125,12 @@ The override always wins over inference and is used exactly as written — add `
 
 ```elixir
 typed_schema "people", null: false, enforce: true do
-  field(:name, :string)              # String.t(), enforced
-  field(:age, :integer, null: true)  # opt back out per field
-  field(:bio, :string, default: "")  # defaults are not enforced
+  # String.t(), enforced
+  field(:name, :string)
+  # opt back out per field
+  field(:age, :integer, null: true)
+  # defaults are not enforced
+  field(:bio, :string, default: "")
 end
 ```
 
@@ -105,7 +152,8 @@ end
 ### `@primary_key`
 
 ```elixir
-@primary_key {:id, :binary_id, autogenerate: true, null: false}
+@primary_key {:id, :binary_id,
+              autogenerate: true, null: false}
 # id: binary()   (no | nil)
 ```
 
@@ -125,13 +173,14 @@ Nullable by default: a struct that was not inserted yet has `nil` timestamps.
 
 ```elixir
 belongs_to(:company, Company, null: false)
-# company: Company.t() | Ecto.Association.NotLoaded.t() | nil
+# company: Ecto.Schema.belongs_to(Company.t()) | nil
 # company_id: integer()
 ```
 
 `:null` applies to the generated foreign key; `:enforce` enforces the association field.
 
 ## Documenting fields
+{: .col-2}
 
 ### The moduledoc marker
 
@@ -154,7 +203,48 @@ defmodule Person do
 end
 ```
 
-The marker is replaced at compile time with a list of every field, its typespec and its `:doc`. Without the marker, `:doc` options don't touch the `@moduledoc`. Independently of the marker, `t/0` gets a `@typedoc` with the same list (your own `@typedoc` is kept; `@typedoc false` respected).
+The marker is replaced at compile time with a list of every field, its typespec and its `:doc`:
+
+```markdown
+- `id` (`integer() | nil`)
+- `name`: The person's full name (`String.t()`)
+- `age` (`integer() | nil`)
+```
+
+The marker is the only trigger — without it, `:doc` options don't touch the `@moduledoc`.
+
+### Controlling the generated `@typedoc`
+
+```elixir
+# Default: t/0 gets a @typedoc with the
+# fields list, for every schema
+typed_schema "people" do
+  ...
+end
+```
+
+```elixir
+# Your own @typedoc is kept; the marker
+# is interpolated in it too
+@typedoc """
+A person. Prefer building via new/1.
+
+<!-- typed_ecto_schema: fields -->
+"""
+typed_schema "people" do
+  ...
+end
+```
+
+```elixir
+# Suppress it entirely
+@typedoc false
+typed_schema "people" do
+  ...
+end
+```
+
+Field docs show up in `t Person.t()` in IEx and on hover in editors.
 
 ## Experimental features
 {: .col-2}
@@ -169,7 +259,14 @@ end
 # usable as Person.role()
 ```
 
-For `{:array, Ecto.Enum}` the named type is the **element** union — write `list(Person.roles())` for the list. Global default: `config :typed_ecto_schema, additional_types: true` (compile-time config).
+Or enable it globally (compile-time config; the schema-level option still wins in both directions):
+
+```elixir
+# config/config.exs
+config :typed_ecto_schema, additional_types: true
+```
+
+For `{:array, Ecto.Enum}` the named type is the **element** union — write `list(Person.roles())` for the list.
 
 ### PolymorphicEmbed integration
 
@@ -184,6 +281,12 @@ polymorphic_embeds_one(:channel,
   on_replace: :update
 )
 # channel: (SMS.t() | Email.t()) | nil
+
+polymorphic_embeds_many(:channels,
+  types: [sms: SMS, email: Email],
+  on_replace: :delete
+)
+# channels: list(SMS.t() | Email.t())
 ```
 
-`polymorphic_embeds_many` generates `list(union)`. `::`, `:null`, `:enforce` and `:doc` work as on `field/3`. `polymorphic_embed` stays out of this library's deps — add it to yours.
+`::`, `:null`, `:enforce` and `:doc` work as on `field/3`. With `additional_types: true` these fields get named types too (element union for `_many`). `polymorphic_embed` stays out of this library's deps — add it to yours.

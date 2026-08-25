@@ -61,7 +61,8 @@ defmodule TypedEctoSchema.MixProject do
       main: "TypedEctoSchema",
       source_url: "https://github.com/bamorim/typed_ecto_schema",
       source_ref: @version,
-      extras: ["cheatsheet.cheatmd", "CHANGELOG.md"]
+      extras: ["cheatsheet.cheatmd", "guides/experimental.md", "CHANGELOG.md"],
+      groups_for_extras: [Guides: ~r/guides/]
     ]
   end
 
