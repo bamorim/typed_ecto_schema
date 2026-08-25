@@ -21,6 +21,21 @@ defmodule TypedEctoSchema.SyntaxSugar do
 
   @polymorphic_embeds_function_names [:polymorphic_embeds_one, :polymorphic_embeds_many]
 
+  # The only options `TypeBuilder.add_field/5` reads. Only these are forwarded
+  # to it, because injecting the full options list into the module body would
+  # evaluate every value in it at compile time, turning module aliases in
+  # options like `:join_through` into compile-time dependencies (issue #38).
+  @type_builder_option_names [
+    :__typed_ecto_type__,
+    :enforce,
+    :null,
+    :default,
+    :values,
+    :define_field,
+    :foreign_key,
+    :type
+  ]
+
   @spec apply_to_block(Macro.t(), Macro.Env.t()) :: Macro.t()
   def apply_to_block(block, env) do
     calls =
@@ -46,15 +61,21 @@ defmodule TypedEctoSchema.SyntaxSugar do
   defp transform_expression({function_name, _, [name, type, opts]}, _env)
        when function_name in @schema_function_names do
     # FIX for issue #52: Handle both compile-time keyword lists and runtime AST variable references
-    ecto_opts =
+    {ecto_opts, builder_opts} =
       if Keyword.keyword?(opts) do
-        # If opts is a compile-time keyword list, drop keys at compile time
-        Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null])
+        # If opts is a compile-time keyword list, split keys at compile time.
+        # The taken values stay as their original AST (not escaped), so things
+        # like `values: @some_attribute` still resolve in the module body.
+        {Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null]),
+         Keyword.take(opts, @type_builder_option_names)}
       else
-        # If opts is an AST variable reference, generate code to drop keys at runtime
-        quote do
-          Keyword.drop(unquote(opts), [:__typed_ecto_type__, :enforce, :null])
-        end
+        # If opts is an AST variable reference, generate code to split keys at runtime
+        {quote do
+           Keyword.drop(unquote(opts), [:__typed_ecto_type__, :enforce, :null])
+         end,
+         quote do
+           Keyword.take(unquote(opts), unquote(@type_builder_option_names))
+         end}
       end
 
     quote do
@@ -65,7 +86,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
         unquote(function_name),
         unquote(name),
         unquote(Macro.escape(type)),
-        unquote(opts)
+        unquote(builder_opts)
       )
     end
   end
