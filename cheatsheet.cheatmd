@@ -1,0 +1,189 @@
+# Cheatsheet
+
+## Defining schemas
+{: .col-2}
+
+### Schema
+
+```elixir
+defmodule Person do
+  use TypedEctoSchema
+
+  typed_schema "people" do
+    field(:name, :string, enforce: true, null: false)
+    field(:age, :integer) :: non_neg_integer() | nil
+    belongs_to(:company, Company)
+    timestamps()
+  end
+end
+```
+
+Generates the schema, `@enforce_keys [:name]` and `@type t()`.
+
+### Embedded schema
+
+```elixir
+defmodule Address do
+  use TypedEctoSchema
+
+  typed_embedded_schema do
+    field(:street, :string)
+    field(:city, :string, null: false)
+  end
+end
+```
+
+`typed_embedded_schema` replaces `embedded_schema`; everything else works the same.
+
+## Field options
+{: .col-2}
+
+### `:null` — control `| nil`
+
+```elixir
+field(:name, :string, null: false)
+# name: String.t()
+
+field(:phone, :string)
+# phone: String.t() | nil (default)
+```
+
+Never applies to `has_many`/`embeds_many` (always lists); `has_one`/`belongs_to` associations always get `| nil`.
+
+### `:enforce` — add to `@enforce_keys`
+
+```elixir
+field(:name, :string, enforce: true)
+# @enforce_keys [:name]
+```
+
+### `:doc` — document the field
+
+```elixir
+field(:name, :string, doc: "The person's full name")
+```
+
+Rendered through the moduledoc marker and the generated `@typedoc` (see below).
+
+### `::` — override the typespec
+
+```elixir
+field(:age, :integer) :: non_neg_integer() | nil
+# age: non_neg_integer() | nil (verbatim)
+```
+
+The override always wins over inference and is used exactly as written — add `| nil` yourself if wanted.
+
+## Schema-level options
+{: .col-2}
+
+### Defaults for all fields
+
+```elixir
+typed_schema "people", null: false, enforce: true do
+  field(:name, :string)              # String.t(), enforced
+  field(:age, :integer, null: true)  # opt back out per field
+  field(:bio, :string, default: "")  # defaults are not enforced
+end
+```
+
+### Other options
+
+```elixir
+typed_schema "people", opaque: true do
+  # @opaque t()
+end
+
+typed_schema "people", additional_types: true do
+  # named types for Ecto.Enum fields (experimental)
+end
+```
+
+## Generated fields
+{: .col-2}
+
+### `@primary_key`
+
+```elixir
+@primary_key {:id, :binary_id, autogenerate: true, null: false}
+# id: binary()   (no | nil)
+```
+
+`:null` and `:enforce` work here too — they are stripped before Ecto sees them.
+
+### `timestamps/1`
+
+```elixir
+timestamps()             # NaiveDateTime.t() | nil
+timestamps(null: false)  # NaiveDateTime.t()
+timestamps(type: :utc_datetime)  # DateTime.t() | nil
+```
+
+Nullable by default: a struct that was not inserted yet has `nil` timestamps.
+
+### `belongs_to/3` foreign key
+
+```elixir
+belongs_to(:company, Company, null: false)
+# company: Company.t() | Ecto.Association.NotLoaded.t() | nil
+# company_id: integer()
+```
+
+`:null` applies to the generated foreign key; `:enforce` enforces the association field.
+
+## Documenting fields
+
+### The moduledoc marker
+
+```elixir
+defmodule Person do
+  @moduledoc """
+  A person.
+
+  ## Fields
+
+  <!-- typed_ecto_schema: fields -->
+  """
+
+  use TypedEctoSchema
+
+  typed_schema "people" do
+    field(:name, :string, doc: "The person's full name")
+    field(:age, :integer)
+  end
+end
+```
+
+The marker is replaced at compile time with a list of every field, its typespec and its `:doc`. Without the marker, `:doc` options don't touch the `@moduledoc`. Independently of the marker, `t/0` gets a `@typedoc` with the same list (your own `@typedoc` is kept; `@typedoc false` respected).
+
+## Experimental features
+{: .col-2}
+
+### Named types for `Ecto.Enum`
+
+```elixir
+typed_schema "people", additional_types: true do
+  field(:role, Ecto.Enum, values: [:admin, :user])
+end
+# @type role() :: :admin | :user
+# usable as Person.role()
+```
+
+For `{:array, Ecto.Enum}` the named type is the **element** union — write `list(Person.roles())` for the list. Global default: `config :typed_ecto_schema, additional_types: true` (compile-time config).
+
+### PolymorphicEmbed integration
+
+```elixir
+# config/config.exs (compile-time, off by default)
+config :typed_ecto_schema, polymorphic_embed: true
+```
+
+```elixir
+polymorphic_embeds_one(:channel,
+  types: [sms: SMS, email: Email],
+  on_replace: :update
+)
+# channel: (SMS.t() | Email.t()) | nil
+```
+
+`polymorphic_embeds_many` generates `list(union)`. `::`, `:null`, `:enforce` and `:doc` work as on `field/3`. `polymorphic_embed` stays out of this library's deps — add it to yours.
