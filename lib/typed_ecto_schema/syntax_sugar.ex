@@ -33,7 +33,8 @@ defmodule TypedEctoSchema.SyntaxSugar do
     :values,
     :define_field,
     :foreign_key,
-    :type
+    :type,
+    :doc
   ]
 
   @spec apply_to_block(Macro.t(), Macro.Env.t()) :: Macro.t()
@@ -66,12 +67,12 @@ defmodule TypedEctoSchema.SyntaxSugar do
         # If opts is a compile-time keyword list, split keys at compile time.
         # The taken values stay as their original AST (not escaped), so things
         # like `values: @some_attribute` still resolve in the module body.
-        {Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null]),
+        {Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null, :doc]),
          Keyword.take(opts, @type_builder_option_names)}
       else
         # If opts is an AST variable reference, generate code to split keys at runtime
         {quote do
-           Keyword.drop(unquote(opts), [:__typed_ecto_type__, :enforce, :null])
+           Keyword.drop(unquote(opts), [:__typed_ecto_type__, :enforce, :null, :doc])
          end,
          quote do
            Keyword.take(unquote(opts), unquote(@type_builder_option_names))
@@ -119,7 +120,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
         expand_expression(expr, env)
 
       Keyword.keyword?(opts) ->
-        ecto_opts = Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null])
+        ecto_opts = Keyword.drop(opts, [:__typed_ecto_type__, :enforce, :null, :doc])
 
         quote do
           unquote(function_name)(unquote(name), unquote(ecto_opts))
@@ -129,7 +130,7 @@ defmodule TypedEctoSchema.SyntaxSugar do
             unquote(function_name),
             unquote(name),
             unquote(Macro.escape(polymorphic_embeds_type(opts))),
-            unquote(Keyword.take(opts, [:__typed_ecto_type__, :enforce, :null, :default]))
+            unquote(Keyword.take(opts, [:__typed_ecto_type__, :enforce, :null, :default, :doc]))
           )
         end
 

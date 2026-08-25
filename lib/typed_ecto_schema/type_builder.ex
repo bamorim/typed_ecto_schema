@@ -53,6 +53,12 @@ defmodule TypedEctoSchema.TypeBuilder do
         accumulate: true
       )
 
+      Module.register_attribute(
+        __MODULE__,
+        :__typed_ecto_schema_docs__,
+        accumulate: true
+      )
+
       Module.put_attribute(
         __MODULE__,
         :__typed_ecto_schema_module_opts__,
@@ -69,12 +75,16 @@ defmodule TypedEctoSchema.TypeBuilder do
 
   defmacro define_type(schema_opts) do
     quote do
+      unquote(__MODULE__).__set_typedoc__(__MODULE__, __ENV__.line)
+
       unquote(__MODULE__).__define_type__(
         @__typed_ecto_schema_types__,
         unquote(schema_opts)
       )
 
       unquote(__MODULE__).__define_additional_types__(@__typed_ecto_schema_additional_types__)
+
+      unquote(__MODULE__).__set_moduledoc__(__MODULE__)
     end
   end
 
@@ -93,6 +103,72 @@ defmodule TypedEctoSchema.TypeBuilder do
     Application.compile_env(env, :typed_ecto_schema, :additional_types, false)
   end
 
+  @fields_marker "<!-- typed_ecto_schema: fields -->"
+
+  # Sets the `@typedoc` for the generated `t/0`. When the module defines none,
+  # a "Fields" section is generated; when it defines one containing the fields
+  # marker, the marker is replaced like in the moduledoc (and `@typedoc false`
+  # is kept as-is). Must run right before the `@type` is defined, so the
+  # pending typedoc attaches to `t/0` and not to an additional type.
+  @spec __set_typedoc__(module(), pos_integer()) :: :ok
+  def __set_typedoc__(module, line) do
+    case Module.get_attribute(module, :typedoc) do
+      nil ->
+        typedoc = "## Fields\n\n" <> fields_entries(module) <> "\n"
+        Module.put_attribute(module, :typedoc, {line, typedoc})
+
+      {doc_line, doc} when is_binary(doc) ->
+        if String.contains?(doc, @fields_marker) do
+          Module.put_attribute(
+            module,
+            :typedoc,
+            {doc_line, String.replace(doc, @fields_marker, fields_entries(module))}
+          )
+        end
+
+      _ ->
+        :ok
+    end
+
+    :ok
+  end
+
+  # Replaces the fields marker in the module's `@moduledoc` (when present)
+  # with a markdown list describing every field. The marker is specific enough
+  # that its presence is the opt-in: without it (or without a `@moduledoc`),
+  # nothing happens.
+  @spec __set_moduledoc__(module()) :: :ok
+  def __set_moduledoc__(module) do
+    with {line, doc} when is_binary(doc) <- Module.get_attribute(module, :moduledoc),
+         true <- String.contains?(doc, @fields_marker) do
+      Module.put_attribute(
+        module,
+        :moduledoc,
+        {line, String.replace(doc, @fields_marker, fields_entries(module))}
+      )
+    end
+
+    :ok
+  end
+
+  @spec fields_entries(module()) :: String.t()
+  defp fields_entries(module) do
+    docs = Module.get_attribute(module, :__typed_ecto_schema_docs__)
+
+    module
+    |> Module.get_attribute(:__typed_ecto_schema_types__)
+    |> Enum.reverse()
+    |> Enum.reject(fn {name, _type} -> name == :__meta__ end)
+    |> Enum.map_join("\n", fn {name, type} ->
+      type_string = "(`#{Macro.to_string(type)}`)"
+
+      case List.keyfind(docs, name, 0) do
+        {_name, doc} -> "- `#{name}`: #{doc} #{type_string}"
+        nil -> "- `#{name}` #{type_string}"
+      end
+    end)
+  end
+
   defmacro __define_type__(types, schema_opts) do
     if Keyword.get(schema_opts, :opaque, false) do
       quote bind_quoted: [types: types] do
@@ -105,7 +181,7 @@ defmodule TypedEctoSchema.TypeBuilder do
     end
   end
 
-  @enhanced_field_opts [:null, :enforce]
+  @enhanced_field_opts [:null, :enforce, :doc]
 
   # Strips the enhanced field options from `@primary_key` before `Ecto.Schema`
   # reads it (it would raise on them), keeping the original for `add_primary_key/1`.
@@ -204,6 +280,10 @@ defmodule TypedEctoSchema.TypeBuilder do
     if field_is_enforced?(schema_opts, field_opts),
       do: Module.put_attribute(mod, :__typed_ecto_schema_enforced_keys__, name)
 
+    doc = Keyword.get(field_opts, :doc)
+
+    if doc, do: Module.put_attribute(mod, :__typed_ecto_schema_docs__, {name, doc})
+
     if Keyword.get(schema_opts, :additional_types, false),
       do: add_additional_type(mod, function_name, name, ecto_type, field_opts)
 
@@ -214,7 +294,8 @@ defmodule TypedEctoSchema.TypeBuilder do
         :field,
         Keyword.get(field_opts, :foreign_key, :"#{name}_id"),
         Keyword.get(field_opts, :type, Module.get_attribute(mod, :foreign_key_type, :integer)),
-        field_opts
+        # The `:doc` belongs to the association, not to its foreign key.
+        Keyword.delete(field_opts, :doc)
       )
     end
 
