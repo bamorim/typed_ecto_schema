@@ -64,7 +64,7 @@ timestamps). You can opt out with `timestamps(null: false)`.
 Install it, add to your deps:
 
 ```elixir
-{:typed_ecto_schema, "~> 0.4.4", runtime: false}
+{:typed_ecto_schema, "~> 0.5.0", runtime: false}
 ```
 
 And change your `use Ecto.Schema` for `use TypedEctoSchema` and change the calls to `schema` for
@@ -135,7 +135,15 @@ end
 
 This defines `@type role() :: :admin | :user`, which can be referenced from other modules as
 `Person.role()`. Keyword values (`values: [foo: 1, bar: 2]`) generate the union of the atom keys
-and `{:array, Ecto.Enum}` fields generate the union of the element values. Fields whose values
+and `{:array, Ecto.Enum}` fields generate the union of the element values.
+
+Watch out: the type is named after the field, but for list fields it represents a **single
+element**, not the list. Since list fields usually have plural names, the name can be
+misleading — `field(:roles, {:array, Ecto.Enum}, values: [:admin, :user])` defines
+`@type roles() :: :admin | :user` (one role), and when you need the list type you write
+`list(Person.roles())`.
+
+Fields whose values
 can't be resolved at compile time and fields named `t` (which would conflict with the schema's
 own `t/0`) are silently skipped; other name collisions with existing types error at compile time.
 
@@ -150,7 +158,9 @@ config :typed_ecto_schema, additional_types: true
 When the PolymorphicEmbed integration is enabled (see below), `polymorphic_embeds_one/2` and
 `polymorphic_embeds_many/2` fields also generate a named type with the union of the modules in
 their `types:` option — e.g. `polymorphic_embeds_one(:channel, types: [sms: SMS, email: Email])`
-defines `@type channel() :: SMS.t() | Email.t()`.
+defines `@type channel() :: SMS.t() | Email.t()`. The single-element rule above applies to
+`polymorphic_embeds_many/2` too: a `:channels` field defines `@type channels() :: SMS.t() |
+Email.t()` — the type of one channel, without the `list(...)` wrapper.
 
 Check the [online documentation](https://hexdocs.pm/typed_ecto_schema) for further details.
 

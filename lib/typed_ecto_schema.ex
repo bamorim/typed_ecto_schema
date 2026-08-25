@@ -128,6 +128,17 @@ defmodule TypedEctoSchema do
   (`:foo | :bar`). For `{:array, Ecto.Enum}` fields the named type is also the union of the
   element values, since that is what is useful in other specs.
 
+  > #### List fields generate the element type {: .warning}
+  >
+  > The type is named after the field, but for list fields it represents a **single element**,
+  > not the list. Since list fields usually have plural names, the name can be misleading:
+  >
+  >     field(:roles, {:array, Ecto.Enum}, values: [:admin, :user])
+  >
+  > defines `@type roles() :: :admin | :user` — the type of one role. When you need the list
+  > type, write `list(Person.roles())`. The same applies to `polymorphic_embeds_many/2` fields
+  > (see below).
+
   Instead of enabling it per schema, it can also be enabled globally through compile-time
   application config, with the schema-level option still taking precedence in both directions:
 
@@ -150,7 +161,8 @@ defmodule TypedEctoSchema do
 
   This defines `@type channel() :: SMS.t() | Email.t()`. As with `{:array, Ecto.Enum}`,
   `polymorphic_embeds_many/2` also generates the union of the element types (without the
-  `list(...)` wrapper).
+  `list(...)` wrapper) — so a plural field like `:channels` defines
+  `@type channels() :: SMS.t() | Email.t()`, the type of a single channel.
 
   Some fields are silently skipped:
 
