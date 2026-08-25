@@ -64,7 +64,7 @@ timestamps). You can opt out with `timestamps(null: false)`.
 Install it, add to your deps:
 
 ```elixir
-{:typed_ecto_schema, "~> 0.4.4", runtime: false}
+{:typed_ecto_schema, "~> 0.5.0", runtime: false}
 ```
 
 And change your `use Ecto.Schema` for `use TypedEctoSchema` and change the calls to `schema` for
