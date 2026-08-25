@@ -7,10 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.0] - 2026-08-24
+## [0.5.0] - 2026-08-26
 
 ### Added
 
+- Field documentation: fields accept a `:doc` option (always stripped before
+  the underlying Ecto macro runs). Placing the
+  `<!-- typed_ecto_schema: fields -->` marker in the module's `@moduledoc`
+  replaces it at compile time with a markdown list of every field, its
+  typespec and its doc — the marker is the only trigger, so without it the
+  `:doc` options don't touch the `@moduledoc`. Independently of the marker,
+  the generated `t/0` now gets a `@typedoc` with the same fields list when the
+  module doesn't define one (a user-defined `@typedoc` is kept, with the same
+  marker interpolation available)
+  ([#68](https://github.com/bamorim/typed_ecto_schema/pull/68), closes
+  [#41](https://github.com/bamorim/typed_ecto_schema/issues/41))
 - Experimental: opt-in named types for `Ecto.Enum` fields via the
   `additional_types: true` schema option (per schema, e.g.
   `typed_schema "people", additional_types: true`) or the global default
@@ -33,6 +44,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@type channel() :: SMS.t() | Email.t()` (the element union for
   `polymorphic_embeds_many`; skipped when the types are not statically
   resolvable)
+
+### Fixed
+
+- Schema function options are no longer evaluated in the module body, so
+  module aliases in pass-through options — e.g.
+  `many_to_many(..., join_through: Book)` — no longer create compile-time
+  dependencies (matching plain `Ecto.Schema`). Only the options the type
+  builder actually reads are forwarded to it, and a compiler-tracer regression
+  test guards against reintroducing such dependencies
+  ([#67](https://github.com/bamorim/typed_ecto_schema/pull/67), closes
+  [#38](https://github.com/bamorim/typed_ecto_schema/issues/38) and
+  [#26](https://github.com/bamorim/typed_ecto_schema/issues/26))
 
 ## [0.4.4] - 2026-08-24
 
